@@ -7,18 +7,19 @@
 #   bash scripts/ops.sh config        配置管理
 #   bash scripts/ops.sh env           写本地开发凭据
 #   bash scripts/ops.sh deploy        构建并部署
-#   bash scripts/ops.sh login         登录 Cloudflare
+#   bash scripts/ops.sh login         交互式登录 Cloudflare（已配置 Token 时不需要）
 #   bash scripts/ops.sh init-db       初始化数据库
 #   bash scripts/ops.sh seed          导入种子数据
 #   bash scripts/ops.sh generate-seed 生成种子 JSON 文件
 #   bash scripts/ops.sh export-data   导出 D1 数据为 JSON
 #   bash scripts/ops.sh import-data   从 JSON 导入数据到 D1
+#   bash scripts/ops.sh token         用引导 Token 生成最小权限运行时 Token（--full 含 D1/R2 写入）
 # =============================================================================
 set -euo pipefail
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 usage() {
-  sed -n '2,16p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '2,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
   exit 0
 }
 
@@ -50,6 +51,11 @@ config_check() {
   check_one "D1_DATABASE_ID" "${D1_DATABASE_ID:-}" '^[0-9a-f-]{36}$' '跑 pnpm wrangler d1 create ourteam-content'
   check_one "R2_BUCKET_NAME" "${R2_BUCKET_NAME:-}" '^[a-z0-9-]+$' '只能小写字母、数字、连字符'
   check_one "CLOUDFLARE_ACCOUNT_ID" "${CLOUDFLARE_ACCOUNT_ID:-}" '^[0-9a-f]{32}$' 'wrangler whoami'
+  if [ -n "${CLOUDFLARE_API_TOKEN:-}" ]; then
+    check_one "CLOUDFLARE_API_TOKEN" "$CLOUDFLARE_API_TOKEN" '^[A-Za-z0-9_-]{20,}$' '在 Manage Account → Account API Tokens 创建账户级 Token'
+  else
+    note "CLOUDFLARE_API_TOKEN 未设置，将使用 wrangler 登录态"
+  fi
   return 0
 }
 
@@ -194,6 +200,12 @@ cmd_import_data() {
   fi
 }
 
+cmd_token() {
+  load_config
+  step "生成最小权限 Token"
+  node "$SCRIPTS_DIR/provision-token.mjs" "$@"
+}
+
 cmd_doctor() {
   load_config
   PASS=0; WARN=0; FAIL=0
@@ -215,10 +227,28 @@ cmd_doctor() {
   [ "$PROBLEMS" -eq 0 ] && mark_ok "配置项校验通过" || mark_warn "配置有问题"
 
   step "Cloudflare"
-  if wrangler whoami 2>/dev/null | grep -qi "account"; then
-    mark_ok "已登录"
+  if [ -n "${CLOUDFLARE_API_TOKEN:-}" ]; then
+    local verify_url="https://api.cloudflare.com/client/v4/user/tokens/verify"
+    case "$CLOUDFLARE_API_TOKEN" in
+      cfat_*)
+        mark_ok "CLOUDFLARE_API_TOKEN 已配置（账户级：部署 / D1 / R2）"
+        verify_url="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/tokens/verify"
+        ;;
+      *) mark_ok "CLOUDFLARE_API_TOKEN 已配置（用户级：部署 / D1 / R2 / 构建）" ;;
+    esac
+    local code
+    code="$(curl -sS -o /dev/null -w '%{http_code}' \
+      -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+      "$verify_url" 2>/dev/null || true)"
+    if [ "$code" = "200" ]; then
+      mark_ok "Token 有效"
+    else
+      mark_fail "Token 无效或与账号不匹配（HTTP ${code:-无响应}）"
+    fi
+  elif wrangler whoami 2>/dev/null | grep -qi "account"; then
+    mark_ok "wrangler 凭据可用"
   else
-    mark_fail "未登录：bash scripts/ops.sh login"
+    mark_fail "凭据不可用：在 config.env 填 CLOUDFLARE_API_TOKEN，或 bash scripts/ops.sh login"
   fi
 
   step "汇总"
@@ -241,6 +271,7 @@ case "${1:-doctor}" in
   generate-seed) cmd_generate_seed ;;
   export-data)  shift; cmd_export_data "$@" ;;
   import-data)  shift; cmd_import_data "$@" ;;
+  token)        shift; cmd_token "$@" ;;
   -h|--help)    usage ;;
   *)            die "未知命令：$1" ;;
 esac

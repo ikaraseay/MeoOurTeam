@@ -166,7 +166,7 @@ flowchart TB
 | Node.js | ≥ 22.23（`.node-version` 写的 22.23.4） |
 | pnpm | 12+（`package.json` 的 `packageManager` 钉版本） |
 | Cloudflare 账号 | D1 / R2 / Workers |
-| wrangler CLI | 已登录（`bash scripts/ops.sh login`） |
+| Cloudflare 凭据 | `config.env` 里的 `CLOUDFLARE_API_TOKEN`（或 `bash scripts/ops.sh login`） |
 
 <a id="installation"></a>
 
@@ -214,7 +214,7 @@ node scripts/hash-password.mjs 'your-password'   # 生成后台口令哈希
 | 命令 | 作用 |
 |---|---|
 | `bash scripts/ops.sh doctor` | 体检：工具链 / 依赖 / 配置 / Cloudflare 登录 |
-| `bash scripts/ops.sh login` | 登录 Cloudflare |
+| `bash scripts/ops.sh login` | 交互式登录 Cloudflare（已配置 Token 时不需要） |
 | `bash scripts/ops.sh init-db` | 创建 D1 并执行全部迁移 |
 | `bash scripts/ops.sh secrets` | 同步后台口令与会话密钥到 Worker |
 | `bash scripts/ops.sh env` | 写本地开发凭据到 `cloudflare/.dev.vars` |
@@ -279,14 +279,66 @@ bash scripts/ops.sh deploy
 
 在 `config.env` 里把 `SITE_URL` 改成正式域名，再在 Cloudflare Dashboard 的 Worker 设置里绑定自定义域名。
 
-### 6. 后台触发构建（可选）
+### 6. 后台触发构建
 
-后台「发布中心」的「立即构建」依赖 Cloudflare Workers Builds 的 Deploy Hook：
+后台「发布中心 → 立即构建」通过 Cloudflare Deploy Hook 触发构建。整个项目只使用**一个账户级 Token**（`CLOUDFLARE_API_TOKEN`），用于部署、D1、R2 和 secret 同步，**不需要用户级 Token**。
 
-1. Dashboard → Worker → Settings → Builds → Deploy Hooks，创建一个 `main` 分支的 hook；
-2. 把 hook URL 存成 Worker secret `DEPLOY_HOOK_URL`。
+> Workers Builds API 只接受用户级 Token，账户级 Token 调用会返回 `Authentication error`。因此构建配置在 Dashboard 做一次性设置，日常触发走无需认证的 Deploy Hook。
 
-没有配置 hook 时，后台会提示「直接上传部署」，用 `bash scripts/ops.sh deploy` 发布即可。
+#### 一次性配置
+
+1. **连接仓库**：Worker → Settings → Builds → Connect GitHub，选择 `ikaraseay/MeoOurTeam`。
+2. **构建命令**：
+   - Build command：`pnpm build`
+   - Deploy command：`pnpm exec wrangler deploy --config dist/server/wrangler.json`
+3. **构建环境变量**（Builds → Variables and Secrets）：
+
+| 变量 | 值 |
+|---|---|
+| `SITE_URL`、`WORKER_NAME`、`D1_DATABASE_NAME`、`D1_DATABASE_ID`、`R2_BUCKET_NAME`、`CLOUDFLARE_ACCOUNT_ID` | 与 `config.env` 相同 |
+| `D1_REMOTE_TOKEN`（secret） | 同一个账户级 Token |
+
+4. **创建 Deploy Hook**：同一页面创建后复制 URL，填入 `config.env`：
+
+```bash
+DEPLOY_HOOK_URL="https://api.cloudflare.com/client/v4/workers/builds/deploy_hooks/<uuid>"
+```
+
+5. **写入 Worker 并测试**：
+
+```bash
+bash scripts/ops.sh secrets          # 同步 DEPLOY_HOOK_URL 等 secret
+curl -X POST "$DEPLOY_HOOK_URL"      # 可选：手动触发一次构建
+```
+
+之后后台「立即构建」直接调用 Hook。Hook URL 本身就是密钥，调用端无需认证；构建时使用的 Build Token 由 Cloudflare 面板自动管理。
+
+> Builds API 无法用账户级 Token 创建或修改构建配置与 Hook，必须先在 Dashboard 完成上述一次性步骤。Cloudflare 文档说明账户级 Token 的 Builds API 支持仍在开发中。
+
+#### Token 权限（账户级，一个 Token 完成部署与数据操作）
+
+同一份 `CLOUDFLARE_API_TOKEN` 用于 `deploy`、`secrets`、D1 数据操作，以及作为构建环境的 `D1_REMOTE_TOKEN`：
+
+| 范围 | 权限 | 级别 | 用途 |
+|---|---|---|---|
+| Account | Workers Scripts（Workers 脚本） | Edit | 部署、写入 Worker secret |
+| Account | D1 | Read | 构建期 `wrangler d1 execute --remote` 导出内容 |
+| Account | Workers R2 Storage（Workers R2 存储） | Edit | 创建 R2 桶、管理媒体文件 |
+| Account | Account Settings（帐户设置） | Read | 读取账号信息，固定 `CLOUDFLARE_ACCOUNT_ID` 时可不加 |
+
+需要 `init-db`、`seed`、`import-data` 时，把 **D1** 提升为 **Edit**。
+
+可选：
+
+| 范围 | 权限 | 级别 | 用途 |
+|---|---|---|---|
+| Zone（站点所在区） | Workers Routes（Workers 路由） | Edit | 仅当由 wrangler 管理自定义域名路由时需要 |
+
+不需要任何 **User** 权限。也不要依赖 **Workers CI** 权限——Builds API 对账户级 Token 一律拒绝。Token 创建位置是 **Manage Account → Account API Tokens**，Account Resources 选择站点所在账号。
+
+脚本用 `/accounts/{account_id}/tokens/verify` 校验账户级 Token，`bash scripts/ops.sh doctor` 应显示「Token 有效」。
+
+没有配置 Hook 时，后台会提示「直接上传部署」，用 `bash scripts/ops.sh deploy` 发布即可。
 
 <p align="right">(<a href="#readme-top">返回顶部</a>)</p>
 
@@ -318,6 +370,8 @@ bash scripts/ops.sh deploy
 | `D1_DATABASE_ID` | D1 数据库 ID |
 | `R2_BUCKET_NAME` | R2 存储桶名称 |
 | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare 账号 ID |
+| `CLOUDFLARE_API_TOKEN` | 唯一的账户级 Token：部署 / D1 / R2 / secrets 共用 |
+| `DEPLOY_HOOK_URL` | Deploy Hook，在 Dashboard 一次性创建后填入 |
 | `ADMIN_PASSWORD_HASH` | 后台口令 SHA-256 |
 | `SESSION_SECRET` | 会话签名密钥（`openssl rand -hex 32`） |
 
@@ -435,9 +489,11 @@ pnpm build
 |---|---|
 | `astro check` 报找不到 `cloudflare:workers` | 先跑 `pnpm types` 生成 `worker-configuration.d.ts` |
 | `astro check` 报缺少 `@astrojs/check` 或 `@emnapi/runtime` 崩溃 | 重新 `pnpm install`；仓库已用 override 把 `@emnapi/runtime` 钉在兼容版本 |
-| 构建后文章 / 成员为空 | `config.env` 没填好，或 wrangler 没登录；先跑 `bash scripts/ops.sh doctor` |
+| 构建后文章 / 成员为空 | `config.env` 没填好，或 `CLOUDFLARE_API_TOKEN` 无权读取 D1；先跑 `bash scripts/ops.sh doctor` |
 | 后台保存后前台没变化 | 站点是构建期产物，需要重新构建（发布中心或 `bash scripts/ops.sh deploy`） |
-| 后台「立即构建」返回 501 | 没有配置 `DEPLOY_HOOK_URL`，改用直接上传部署 |
+| 后台「立即构建」返回 501 | 没有配置 `DEPLOY_HOOK_URL`：在 Dashboard 创建 Hook，填入 `config.env` 后执行 `bash scripts/ops.sh secrets` |
+| Builds API 返回 `Authentication error` | 账户级 Token 不能调用 Builds API，构建配置需在 Dashboard 一次性完成 |
+| 构建失败或内容为空 | 检查 Builds 环境变量，尤其是 `D1_REMOTE_TOKEN` 是否已配置为 secret |
 | 登录一直失败 | `ADMIN_PASSWORD_HASH` 与输入口令不一致，用 `node scripts/hash-password.mjs` 重新生成 |
 | 本地后台看不到线上内容 | 先 `pnpm sync`，确认 `config.env` 与 wrangler 登录态正常 |
 | CI 在安装阶段失败 | 确认 pnpm 12 与 `pnpm-lock.yaml` 一致，不要手工改锁文件 |

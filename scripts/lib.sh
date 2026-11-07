@@ -15,10 +15,10 @@ ASTRO_CONFIG="$PROJECT_ROOT/astro.config.mjs"
 WRANGLER_BIN="$PROJECT_ROOT/node_modules/.bin/wrangler"
 
 ALL_KEYS="SITE_URL WORKER_NAME D1_DATABASE_NAME D1_DATABASE_ID R2_BUCKET_NAME
-CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_API_TOKEN ADMIN_PASSWORD_HASH SESSION_SECRET"
+CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_API_TOKEN DEPLOY_HOOK_URL ADMIN_PASSWORD_HASH SESSION_SECRET"
 
 CF_KEYS="WORKER_NAME SITE_URL D1_DATABASE_NAME D1_DATABASE_ID R2_BUCKET_NAME
-CLOUDFLARE_ACCOUNT_ID ADMIN_PASSWORD_HASH SESSION_SECRET"
+CLOUDFLARE_ACCOUNT_ID DEPLOY_HOOK_URL ADMIN_PASSWORD_HASH SESSION_SECRET"
 
 C_RESET=$'\033[0m'; C_B=$'\033[1m'; C_DIM=$'\033[2m'
 C_G=$'\033[32m'; C_Y=$'\033[33m'; C_R=$'\033[31m'; C_C=$'\033[36m'
@@ -87,10 +87,28 @@ wrangler() {
 }
 
 require_login() {
+  # 只保留一个凭据：config.env 里的 CLOUDFLARE_API_TOKEN 优先，wrangler login 作为后备。
+  if [ -n "${CLOUDFLARE_API_TOKEN:-}" ]; then
+    local verify_url="https://api.cloudflare.com/client/v4/user/tokens/verify"
+    case "$CLOUDFLARE_API_TOKEN" in
+      cfat_*)
+        [ -n "${CLOUDFLARE_ACCOUNT_ID:-}" ] \
+          || die "账号级 Token 需要 config.env 里的 CLOUDFLARE_ACCOUNT_ID"
+        verify_url="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/tokens/verify"
+        ;;
+    esac
+    local code
+    code="$(curl -sS -o /dev/null -w '%{http_code}' \
+      -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+      "$verify_url" 2>/dev/null || true)"
+    [ "$code" = "200" ] \
+      || die "CLOUDFLARE_API_TOKEN 无效或与账号不匹配（HTTP ${code:-无响应}）"
+    return 0
+  fi
   local who
   who="$(wrangler whoami 2>/dev/null)" || true
   printf '%s' "$who" | grep -qi "account" \
-    || die "还没登录 Cloudflare：bash scripts/ops.sh login"
+    || die "还没配置凭据：在 config.env 填 CLOUDFLARE_API_TOKEN，或 bash scripts/ops.sh login"
 }
 
 json_escape() { printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'; }

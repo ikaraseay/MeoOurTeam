@@ -60,7 +60,21 @@ if (ensureOnly) {
 // D1 查询
 // =============================================================================
 
+function loadConfigToken() {
+  // 本地直接跑 pnpm build 时也从 config.env 取同一个 Token，避免再登录一次。
+  if (process.env.D1_REMOTE_TOKEN || process.env.CLOUDFLARE_API_TOKEN) return
+  try {
+    const source = readFileSync(join(ROOT, 'config.env'), 'utf-8')
+    const match = source.match(/^\s*CLOUDFLARE_API_TOKEN\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s#]+))/m)
+    const value = match?.[1] || match?.[2] || match?.[3]
+    if (value) process.env.CLOUDFLARE_API_TOKEN = value
+  } catch {
+    // CI 等无 config.env 的环境继续使用 wrangler 现有凭据
+  }
+}
+
 function queryD1(sql) {
+  loadConfigToken()
   const wrangler = join(ROOT, 'node_modules/.bin/wrangler')
   const configPath = join(ROOT, 'cloudflare/wrangler.jsonc')
   const config = JSON.parse(readFileSync(configPath, 'utf-8').replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, ''))
@@ -68,12 +82,19 @@ function queryD1(sql) {
   
   const flag = useLocal ? '--local' : '--remote'
   const cmd = `cd "${join(ROOT, 'cloudflare')}" && ${wrangler} d1 execute ${dbName} ${flag} --command=${JSON.stringify(sql)} --json`
+
+  // 构建环境注入同一个 Token 用于读 D1，部署仍走 Workers Builds 的 Build Token。
+  const env = process.env.D1_REMOTE_TOKEN
+    ? { ...process.env, CLOUDFLARE_API_TOKEN: process.env.D1_REMOTE_TOKEN }
+    : process.env
   
   try {
-    const output = execFileSync('sh', ['-c', cmd], { encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024 })
+    const output = execFileSync('sh', ['-c', cmd], { encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024, env })
     const result = JSON.parse(output)
     return Array.isArray(result) && result[0]?.results ? result[0].results : []
   } catch (err) {
+    // 云构建里失败必须终止，否则会把空内容发布上线。
+    if (process.env.WORKERS_CI) throw new Error(`D1 查询失败：${err.message}`)
     console.warn('[export] D1 查询失败:', err.message)
     return []
   }

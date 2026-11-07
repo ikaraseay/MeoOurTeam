@@ -25,12 +25,21 @@ function loadEnv() {
     // 没有 config.env
   }
   for (const key of ['SITE_URL', 'D1_DATABASE_ID', 'D1_DATABASE_NAME', 'R2_BUCKET_NAME', 'WORKER_NAME']) {
-    if (!values[key] && process.env[key]) values[key] = process.env[key]
+    if (process.env[key]) values[key] = process.env[key].trim()
   }
   return values
 }
 
 const env = loadEnv()
+const D1_PLACEHOLDER = 'REPLACE_WITH_YOUR_D1_DATABASE_ID'
+const d1Id = env.D1_DATABASE_ID
+if (!d1Id || d1Id === D1_PLACEHOLDER) {
+  if (process.env.WORKERS_CI) {
+    console.error('[apply] 缺少 D1_DATABASE_ID：在 Cloudflare Builds 的 Build variables 里配置后重试')
+    process.exit(1)
+  }
+  console.warn('[apply] 未提供 D1_DATABASE_ID，保留占位符（仅本地构建）')
+}
 const host = (env.SITE_URL ?? '').replace(/^https?:\/\//, '').replace(/\/.*$/, '')
 
 function patch(file, edits) {

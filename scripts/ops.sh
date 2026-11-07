@@ -23,6 +23,29 @@ usage() {
   exit 0
 }
 
+# 仓库里只留占位符：需要真实绑定时临时注入，命令结束（含异常退出）自动还原
+LOCAL_CONFIG_BACKUP=""
+restore_local_config() {
+  if [ -n "$LOCAL_CONFIG_BACKUP" ] && [ -d "$LOCAL_CONFIG_BACKUP" ]; then
+    cp "$LOCAL_CONFIG_BACKUP/wrangler.jsonc" "$WRANGLER_CONFIG"
+    cp "$LOCAL_CONFIG_BACKUP/astro.config.mjs" "$ASTRO_CONFIG"
+    rm -rf "$LOCAL_CONFIG_BACKUP"
+    LOCAL_CONFIG_BACKUP=""
+  fi
+}
+stage_local_config() {
+  [ -z "$LOCAL_CONFIG_BACKUP" ] || return 0
+  LOCAL_CONFIG_BACKUP="$(mktemp -d)"
+  cp "$WRANGLER_CONFIG" "$LOCAL_CONFIG_BACKUP/wrangler.jsonc"
+  cp "$ASTRO_CONFIG" "$LOCAL_CONFIG_BACKUP/astro.config.mjs"
+}
+apply_local_config() {
+  stage_local_config
+  node "$PROJECT_ROOT/scripts/apply-config.mjs" \
+    || { restore_local_config; die "apply-config 失败：检查 config.env 的 D1_DATABASE_ID"; }
+}
+trap restore_local_config EXIT
+
 PROBLEMS=0
 check_one() {
   local label="$1" value="$2" pattern="$3" hint="$4"
@@ -120,6 +143,7 @@ cmd_env() {
 
 cmd_deploy() {
   load_config
+  apply_local_config
   step "构建"
   (cd "$PROJECT_ROOT" && pnpm build 2>&1 | tail -10 | sed 's/^/  /')
   step "部署"
@@ -136,6 +160,7 @@ cmd_login() {
 
 cmd_init_db() {
   load_config
+  apply_local_config
   step "初始化 D1 数据库"
   note "创建数据库：${D1_DATABASE_NAME}"
   wrangler d1 create "$D1_DATABASE_NAME" 2>&1 | sed 's/^/  /' || true
@@ -157,6 +182,7 @@ cmd_init_db() {
 
 cmd_seed() {
   load_config
+  apply_local_config
   local flag="${1:-}"
   step "生成并导入种子数据"
   if [ "$flag" = "--local" ]; then
@@ -175,6 +201,7 @@ cmd_generate_seed() {
 
 cmd_export_data() {
   load_config
+  apply_local_config
   local flag="${1:-}"
   step "导出 D1 数据为 JSON"
   if [ "$flag" = "--local" ]; then
@@ -187,6 +214,7 @@ cmd_export_data() {
 
 cmd_import_data() {
   load_config
+  apply_local_config
   local file="${1:-}"
   local extra="${2:-}"
   [ -n "$file" ] || die "用法：bash scripts/ops.sh import-data <json-file> [--local]"
@@ -225,6 +253,14 @@ cmd_doctor() {
   [ -f "$CONFIG_FILE" ] && mark_ok "配置文件存在" || mark_fail "cp config.env.example config.env"
   config_check >/dev/null 2>&1 || true
   [ "$PROBLEMS" -eq 0 ] && mark_ok "配置项校验通过" || mark_warn "配置有问题"
+  local d1_in_toml
+  d1_in_toml="$(sed -n 's/.*"database_id": *"\([^"]*\)".*/\1/p' "$WRANGLER_CONFIG" | head -1)"
+  case "$d1_in_toml" in
+    ""|REPLACE_WITH_YOUR_D1_DATABASE_ID|00000000-0000-0000-0000-000000000000)
+      mark_ok "wrangler.jsonc 保持占位符（真实值只在 config.env / Build variables）" ;;
+    *)
+      mark_warn "wrangler.jsonc 含真实 D1 id（本地注入未还原，勿提交）" ;;
+  esac
 
   step "Cloudflare"
   if [ -n "${CLOUDFLARE_API_TOKEN:-}" ]; then

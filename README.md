@@ -183,7 +183,7 @@ pnpm types                          # 生成 Worker 类型（worker-configuratio
 pnpm dev                            # 开发服务器
 ```
 
-`config.env` 是**唯一**需要填真实环境值的地方（不入库）。仓库里的 `cloudflare/wrangler.jsonc` 与 `astro.config.mjs` 放的是占位符，构建前由 `scripts/apply-config.mjs` 把真值填回去。
+`config.env` 是**唯一**需要填真实环境值的地方（不入库）。仓库里的 `cloudflare/wrangler.jsonc` 与 `astro.config.mjs` 放的是占位符，构建前由 `scripts/apply-config.mjs` 把真值填回去；走 `scripts/ops.sh` 的命令结束时会自动还原。直接跑 `pnpm build` / `pnpm dev` 也会注入真值，提交前用 `bash scripts/ops.sh doctor` 确认已还原。
 
 本地开发如果没有真实 D1，可以先跑 `bash scripts/ops.sh init-db` 初始化远程库，或直接用种子数据：
 

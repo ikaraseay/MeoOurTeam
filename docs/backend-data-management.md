@@ -267,11 +267,12 @@ pnpm data:import backup.json
 ### 配置未生效
 
 ```bash
-# 重新应用配置
-node scripts/apply-config.mjs
+# 构建时由 scripts/apply-config.mjs 自动注入真实值；
+# 本地只需确认 config.env 齐全，仓库里的 wrangler.jsonc 应保持占位符
+bash scripts/ops.sh doctor
 
 # 验证
-grep "database_id" cloudflare/wrangler.jsonc
+grep "database_id" cloudflare/wrangler.jsonc   # 应为 REPLACE_WITH_YOUR_D1_DATABASE_ID
 ```
 
 ## 开发建议

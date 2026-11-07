@@ -1,4 +1,6 @@
 {
+  // 仓库只保留占位符：真实值来自 config.env（本地）或 Build variables（CI），
+  // 构建前由 scripts/apply-config.mjs 注入；本地脚本结束时会自动还原。
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "ourteam",
   "main": "@astrojs/cloudflare/entrypoints/server",
@@ -12,7 +14,7 @@
     {
       "binding": "DB",
       "database_name": "ourteam-content",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID",
       "migrations_dir": "../backend/db/migrations"
     }
   ],

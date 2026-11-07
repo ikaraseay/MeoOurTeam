@@ -64,10 +64,11 @@ export const prerender = false
       </form>
     </div>
     <script>
-      document.getElementById('login-form').addEventListener('submit', async (e) => {
+      const loginForm = document.getElementById('login-form') as HTMLFormElement | null;
+      loginForm?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const password = document.getElementById('password').value;
-        const errorEl = document.getElementById('error-message');
+        const password = (document.getElementById('password') as HTMLInputElement).value;
+        const errorEl = document.getElementById('error-message') as HTMLElement;
         
         try {
           const res = await fetch('/api/admin/login', {
@@ -79,7 +80,7 @@ export const prerender = false
           if (res.ok) {
             window.location.href = '/admin';
           } else {
-            const data = await res.json();
+            const data = await res.json() as { error?: string };
             errorEl.textContent = data.error || '登录失败';
             errorEl.style.display = 'block';
           }

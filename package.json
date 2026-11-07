@@ -41,15 +41,16 @@
     "@tailwindcss/typography": "^0.5.20",
     "@tailwindcss/vite": "^4.3.3",
     "astro": "^7.4.4",
+    "dom-serializer": "^2.0.0",
     "gray-matter": "^4.0.3",
+    "htmlparser2": "^12.0.0",
     "markdown-it": "^15.0.2",
     "sanitize-html": "^2.17.7",
-    "tailwindcss": "^4.3.3",
-    "htmlparser2": "^12.0.0",
-    "dom-serializer": "^2.0.0"
+    "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
+    "@types/node": "^22.20.5",
     "typescript": "^6.0.3",
     "wrangler": "^4.156.0"
   },

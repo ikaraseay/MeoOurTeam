@@ -7,9 +7,16 @@ const response = await fetch(`${Astro.url.origin}/api/admin/settings`, {
   headers: { cookie: Astro.request.headers.get('cookie') || '' },
 })
 
-let settings = {}
+interface Settings {
+  site_name?: string
+  site_description?: string
+  contact_email?: string
+  address?: string
+}
+
+let settings: Settings = {}
 if (response.ok) {
-  const data = await response.json()
+  const data = await response.json() as { settings?: Settings }
   settings = data.settings || {}
 }
 ---
@@ -67,9 +74,9 @@ if (response.ok) {
   </div>
 
   <script>
-    document.getElementById('settings-form').addEventListener('submit', async (e) => {
+    document.getElementById('settings-form')?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const form = e.target;
+      const form = e.currentTarget as unknown as Record<string, HTMLInputElement>;
       const updates = {
         site_name: form.site_name.value,
         site_description: form.site_description.value,
@@ -83,27 +90,27 @@ if (response.ok) {
         body: JSON.stringify({ updates }),
       });
 
-      const resultEl = document.getElementById('result');
+      const resultEl = document.getElementById('result') as HTMLElement;
       resultEl.style.display = 'block';
 
       if (res.ok) {
         resultEl.className = 'alert alert-success';
         resultEl.textContent = '设置已保存！';
       } else {
-        const err = await res.json();
+        const err = await res.json() as { error?: string };
         resultEl.className = 'alert alert-error';
         resultEl.textContent = `保存失败: ${err.error}`;
       }
     });
 
     document.getElementById('export-btn')?.addEventListener('click', async () => {
-      const resultEl = document.getElementById('export-result');
+      const resultEl = document.getElementById('export-result') as HTMLElement;
       resultEl.style.display = 'block';
       resultEl.textContent = '正在导出...';
       
       try {
         const res = await fetch('/api/admin/export', { method: 'POST' });
-        const data = await res.json();
+        const data = await res.json() as { error?: string };
         
         if (res.ok) {
           resultEl.className = 'alert alert-success';

@@ -20,8 +20,8 @@ if (!isNew) {
     headers: { cookie: Astro.request.headers.get('cookie') || '' },
   })
   if (response.ok) {
-    const data = await response.json()
-    item = (data.research || []).find(r => r.id === itemId) || item
+    const data = await response.json() as { research?: Array<typeof item> }
+    item = (data.research || []).find((r) => r.id === itemId) || item
   }
 }
 ---
@@ -33,7 +33,7 @@ if (!isNew) {
   </div>
 
   <div class="card">
-    <form id="form">
+    <form id="form" data-item-id={itemId} data-is-new={String(isNew)}>
       <div class="form-group">
         <label for="title">标题 *</label>
         <input type="text" id="title" name="title" class="form-control" value={item.title} required />
@@ -70,10 +70,14 @@ if (!isNew) {
     </form>
   </div>
 
-  <script define:vars={{ itemId, isNew }}>
-    document.getElementById('form').addEventListener('submit', async (e) => {
+  <script>
+    const formEl = document.getElementById('form') as HTMLFormElement | null;
+    const itemId = formEl?.dataset.itemId || '';
+    const isNew = formEl?.dataset.isNew === 'true';
+
+    formEl?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const form = e.target;
+      const form = e.currentTarget as unknown as Record<string, HTMLInputElement>;
       const data = {
         title: form.title.value,
         content: form.content.value,
@@ -91,7 +95,7 @@ if (!isNew) {
         body: JSON.stringify(data),
       });
 
-      const resultEl = document.getElementById('result');
+      const resultEl = document.getElementById('result') as HTMLElement;
       resultEl.style.display = 'block';
 
       if (res.ok) {
@@ -99,7 +103,7 @@ if (!isNew) {
         resultEl.textContent = '保存成功！';
         setTimeout(() => window.location.href = '/admin/research', 1000);
       } else {
-        const err = await res.json();
+        const err = await res.json() as { error?: string };
         resultEl.className = 'alert alert-error';
         resultEl.textContent = `保存失败: ${err.error}`;
       }

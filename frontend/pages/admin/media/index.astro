@@ -7,9 +7,17 @@ const response = await fetch(`${Astro.url.origin}/api/admin/media`, {
   headers: { cookie: Astro.request.headers.get('cookie') || '' },
 })
 
-let items = []
+interface MediaItem {
+  id: string
+  key: string
+  alt: string
+  filename: string
+  size: number
+}
+
+let items: MediaItem[] = []
 if (response.ok) {
-  const data = await response.json()
+  const data = await response.json() as { media?: MediaItem[] }
   items = data.media || []
 }
 ---
@@ -58,14 +66,17 @@ if (response.ok) {
   )}
 
   <script>
-    document.getElementById('upload-form').addEventListener('submit', async (e) => {
+    const uploadForm = document.getElementById('upload-form') as HTMLFormElement | null;
+    uploadForm?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const form = e.target;
+      const form = e.currentTarget as unknown as Record<string, HTMLInputElement>;
+      const file = form.file.files?.[0];
+      if (!file) return;
       const formData = new FormData();
-      formData.append('file', form.file.files[0]);
+      formData.append('file', file);
       formData.append('alt', form.alt.value);
 
-      const resultEl = document.getElementById('upload-result');
+      const resultEl = document.getElementById('upload-result') as HTMLElement;
       resultEl.style.display = 'block';
       resultEl.textContent = '上传中...';
 
@@ -76,7 +87,7 @@ if (response.ok) {
           resultEl.textContent = '上传成功！';
           setTimeout(() => location.reload(), 1000);
         } else {
-          const err = await res.json();
+          const err = await res.json() as { error?: string };
           resultEl.className = 'alert alert-error';
           resultEl.textContent = `上传失败: ${err.error}`;
         }
@@ -86,24 +97,24 @@ if (response.ok) {
       }
     });
 
-    async function deleteMedia(btn) {
+    async function deleteMedia(btn: HTMLElement) {
       if (!confirm('确定要删除吗？')) return;
       const id = btn.dataset.id;
       const res = await fetch(`/api/admin/media/${id}`, { method: 'DELETE' });
       if (res.ok) {
-        btn.closest('.media-item').remove();
+        btn.closest('.media-item')?.remove();
       } else {
         alert('删除失败');
       }
     }
-    window.deleteMedia = deleteMedia;
+    (window as unknown as Record<string, unknown>).deleteMedia = deleteMedia;
 
-    function copyUrl(key) {
+    function copyUrl(key: string) {
       const url = `/media/${key}`;
       navigator.clipboard.writeText(url).then(() => {
         alert('路径已复制: ' + url);
       });
     }
-    window.copyUrl = copyUrl;
+    (window as unknown as Record<string, unknown>).copyUrl = copyUrl;
   </script>
 </AdminLayout>

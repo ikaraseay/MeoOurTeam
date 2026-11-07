@@ -4,3 +4,6 @@ packages:
 allowBuilds:
   esbuild: true
   workerd: true
+
+overrides:
+  '@emnapi/runtime': 1.11.3

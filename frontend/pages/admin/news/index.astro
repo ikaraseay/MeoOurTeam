@@ -7,9 +7,17 @@ const response = await fetch(`${Astro.url.origin}/api/admin/news`, {
   headers: { cookie: Astro.request.headers.get('cookie') || '' },
 })
 
-let items = []
+interface NewsItem {
+  id: string
+  title: string
+  category: string
+  pub_date?: string | null
+  status: string
+}
+
+let items: NewsItem[] = []
 if (response.ok) {
-  const data = await response.json()
+  const data = await response.json() as { news?: NewsItem[] }
   items = data.news || []
 }
 ---
@@ -63,16 +71,16 @@ if (response.ok) {
   </style>
 
   <script>
-    async function deleteItem(btn) {
+    async function deleteItem(btn: HTMLElement) {
       if (!confirm('确定要删除吗？')) return;
       const id = btn.dataset.id;
       const res = await fetch(`/api/admin/news/${id}`, { method: 'DELETE' });
       if (res.ok) {
-        btn.closest('tr').remove();
+        btn.closest('tr')?.remove();
       } else {
         alert('删除失败');
       }
     }
-    window.deleteItem = deleteItem;
+    (window as unknown as Record<string, unknown>).deleteItem = deleteItem;
   </script>
 </AdminLayout>

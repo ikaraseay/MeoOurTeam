@@ -670,7 +670,7 @@ export async function createRelease(version: string, createdBy: string = 'admin'
     .bind(id, version, 'building', now, createdBy)
     .run()
   
-  return { id, version, status: 'building', build_log: null, created_at: now, completed_at: null, created_by }
+  return { id, version, status: 'building', build_log: null, created_at: now, completed_at: null, created_by: createdBy }
 }
 
 export async function updateReleaseStatus(

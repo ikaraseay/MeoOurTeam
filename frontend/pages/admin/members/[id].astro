@@ -23,8 +23,8 @@ if (!isNew) {
     headers: { cookie: Astro.request.headers.get('cookie') || '' },
   })
   if (response.ok) {
-    const data = await response.json()
-    member = data.member
+    const data = await response.json() as { member?: typeof member }
+    member = data.member || member
   }
 }
 ---
@@ -36,7 +36,7 @@ if (!isNew) {
   </div>
 
   <div class="card">
-    <form id="member-form">
+    <form id="member-form" data-item-id={memberId} data-is-new={String(isNew)}>
       <div class="form-group">
         <label for="name">姓名 *</label>
         <input type="text" id="name" name="name" class="form-control" value={member.name} required />
@@ -89,12 +89,13 @@ if (!isNew) {
   </div>
 
   <script>
-    const memberId = JSON.parse(document.currentScript.dataset.memberId || '""');
-    const isNew = !memberId || memberId === 'new';
+    const formEl = document.getElementById('member-form') as HTMLFormElement | null;
+    const memberId = formEl?.dataset.itemId || '';
+    const isNew = formEl?.dataset.isNew === 'true';
 
-    document.getElementById('member-form').addEventListener('submit', async (e) => {
+    formEl?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const form = e.target;
+      const form = e.currentTarget as unknown as Record<string, HTMLInputElement>;
       const data = {
         name: form.name.value,
         role: form.role.value,
@@ -115,7 +116,7 @@ if (!isNew) {
         body: JSON.stringify(data),
       });
 
-      const resultEl = document.getElementById('result');
+      const resultEl = document.getElementById('result') as HTMLElement;
       resultEl.style.display = 'block';
 
       if (res.ok) {
@@ -123,7 +124,7 @@ if (!isNew) {
         resultEl.textContent = '保存成功！';
         setTimeout(() => window.location.href = '/admin/members', 1000);
       } else {
-        const err = await res.json();
+        const err = await res.json() as { error?: string };
         resultEl.className = 'alert alert-error';
         resultEl.textContent = `保存失败: ${err.error}`;
       }

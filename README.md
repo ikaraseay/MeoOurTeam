@@ -163,7 +163,7 @@ flowchart TB
 
 | 项 | 要求 |
 |---|---|
-| Node.js | ≥ 24.22（`.node-version` 写的 24.22.2） |
+| Node.js | ≥ 26.13（`.node-version` 写的 26.13.0） |
 | pnpm | 12+（`package.json` 的 `packageManager` 钉版本） |
 | Cloudflare 账号 | D1 / R2 / Workers |
 | Cloudflare 凭据 | `config.env` 里的 `CLOUDFLARE_API_TOKEN`（或 `bash scripts/ops.sh login`） |

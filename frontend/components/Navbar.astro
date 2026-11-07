@@ -1,0 +1,172 @@
+---
+import { t, binding } from "../lib/text-config";
+import Text from "./Text.astro";
+
+import { site } from "../lib/site";
+
+const path = Astro.url.pathname;
+const sectionLinks = site.nav;
+const brandMarks = [
+  { ...site.institutions[0], kind: "university" },
+  { ...site.institutions[1], kind: "academy" },
+];
+const pathOnly = (href: string) => href.split("#")[0] || "/";
+const isActive = (href: string) => {
+  const target = pathOnly(href);
+  return target === "/" ? path === "/" : path.startsWith(target);
+};
+---
+
+<!-- The identity masthead stays in normal flow; only navigation is sticky. -->
+<header class="site-masthead border-b border-default bg-base">
+  <div class="max-w-6xl mx-auto px-4 md:px-8 py-3">
+    <div class="brand-block">
+      <div class="institution-logos">
+        {brandMarks.map((institution) => (
+          <a href={institution.href} class:list={["institution-link", `${institution.kind}-link`]} aria-label={institution.name}>
+            {institution.kind === "university" ? (
+              <span class="university-wordmark" role="img" aria-label={institution.name} style={`--wordmark: url("${institution.logo}"); aspect-ratio: ${institution.width} / ${institution.height};`}></span>
+            ) : (
+              <img src={institution.logo} alt={institution.name} width={institution.width} height={institution.height} decoding="async" />
+            )}
+          </a>
+        ))}
+      </div>
+      <a href="/" class="lab-name font-bold text-fg"><Text value={site.name} /></a>
+    </div>
+  </div>
+</header>
+<nav
+  class="site-navigation sticky top-0 z-50 backdrop-blur border-b"
+  style="background: color-mix(in oklab, var(--bg) 85%, transparent); border-color: var(--border);"
+>
+  <div class="lg:hidden max-w-6xl mx-auto flex items-center justify-between gap-3 px-4 md:px-8 py-2">
+    <a href="/" class="mobile-brand text-sm font-bold text-fg"><Text value={site.lab.name} /></a>
+    <div class="shrink-0">
+      {/* Native details keeps navigation usable without JavaScript. */}
+      <details id="mobile-menu" class="relative">
+        <summary data-copy-attrs={JSON.stringify({"aria-label": binding(t("navbar.arialabel002"))})}
+          aria-label={t("navbar.arialabel002")}
+          class="list-none cursor-pointer w-11 h-11 rounded-lg border flex items-center justify-center transition-colors border-default"
+        >
+          {/* Hamburger icon */}
+          <span class="relative w-4 h-3 block">
+            <span
+              class="absolute left-0 right-0 h-px top-0 transition-all duration-200 origin-center group-open:rotate-45 bg-fg"
+              data-bar="1"
+            ></span>
+            <span
+              class="absolute left-0 right-0 h-px top-1/2 -translate-y-1/2 transition-all duration-200 bg-fg"
+              data-bar="2"
+            ></span>
+            <span
+              class="absolute left-0 right-0 h-px bottom-0 transition-all duration-200 origin-center bg-fg"
+              data-bar="3"
+            ></span>
+          </span>
+        </summary>
+
+        {/* Dropdown panel */}
+        <div
+          class="absolute right-0 mt-2 w-56 rounded-xl border shadow-xl p-2 bg-base border-default shadow-card-lg"
+        >
+          {
+            sectionLinks.map((l) => (
+              <a
+                href={l.href}
+                aria-current={isActive(l.href) ? "page" : undefined}
+                class="block px-3 py-3 rounded-lg text-sm transition-colors text-fg-muted"
+              >
+                <Text value={l.label} />
+              </a>
+            ))
+          }
+        </div>
+      </details>
+    </div>
+  </div>
+  <div class="desktop-navigation hidden lg:block">
+    <div class="max-w-6xl mx-auto flex items-center gap-8 px-8">
+      {sectionLinks.map((link) => (
+        <a href={link.href} aria-current={isActive(link.href) ? "page" : undefined} class="nav-link">
+          <Text value={link.label} />
+        </a>
+      ))}
+    </div>
+  </div>
+</nav>
+
+<style>
+  .brand-block { display: flex; align-items: center; justify-content: space-between; gap: 2rem; min-width: 0; flex: 1; }
+  .institution-logos { display: flex; align-items: center; gap: .8rem; flex-shrink: 0; padding: .25rem 0; background: transparent; }
+  .institution-link { display: flex; align-items: center; min-height: 36px; }
+  .institution-link + .institution-link { padding-left: .8rem; border-left: 1px solid var(--border); }
+  .institution-link img { width: 172px; height: 40px; object-fit: contain; }
+  /* The source is the transparent university wordmark. Its alpha mask preserves the
+     original geometry while the theme supplies a legible blue in both modes. */
+  .university-wordmark { display: block; width: 260px; background: var(--accent); mask: var(--wordmark) center / contain no-repeat; }
+  .lab-name { max-width: 27rem; font-size: 1.05rem; line-height: 1.6; text-align: right; }
+  .mobile-brand { min-width: 0; line-height: 1.5; text-wrap: balance; }
+  .nav-link { padding: .75rem 0; font-size: .875rem; color: var(--fg-muted); border-bottom: 2px solid transparent; }
+  .nav-link:hover, .nav-link[aria-current="page"] { color: var(--accent); border-bottom-color: var(--accent); }
+  @media (max-width: 1023px) {
+    .brand-block { align-items: flex-start; flex-direction: column; gap: .45rem; }
+    .lab-name { display: none; }
+    .institution-logos { gap: .5rem; padding: 0; }
+    .institution-link + .institution-link { padding-left: .5rem; }
+    .institution-link img { width: 136px; height: 32px; }
+    .university-wordmark { width: clamp(170px, 35vw, 240px); }
+  }
+  @media (max-width: 400px) {
+    .institution-link img { width: 96px; height: 28px; }
+    .institution-logos { gap: .35rem; }
+    .institution-link + .institution-link { padding-left: .35rem; }
+    .institution-link { min-height: 30px; }
+    .lab-name { font-size: .7rem; }
+  }
+
+  /* Animate hamburger bars into X when <details> is open */
+  #mobile-menu[open] [data-bar="1"] {
+    transform: translateY(5px) rotate(45deg);
+  }
+  #mobile-menu[open] [data-bar="2"] {
+    opacity: 0;
+  }
+  #mobile-menu[open] [data-bar="3"] {
+    transform: translateY(-5px) rotate(-45deg);
+  }
+
+  #mobile-menu a[aria-current="page"] {
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  /* Keep each menu item a full-width touch target. */
+  #mobile-menu :global(a) {
+    display: block;
+  }
+</style>
+
+<script>
+
+  const menu = document.querySelector<HTMLDetailsElement>("#mobile-menu");
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && menu?.open) {
+      menu.open = false;
+      menu.querySelector("summary")?.focus();
+    }
+  });
+  document.addEventListener("click", (event) => {
+    if (menu?.open && event.target instanceof Node && !menu.contains(event.target)) {
+      menu.open = false;
+    }
+  });
+  // Close the mobile menu when any link inside it is clicked,
+  // so navigating to a section doesn't leave the menu hanging open.
+  document
+    .querySelectorAll("#mobile-menu a")
+    .forEach((a) => a.addEventListener("click", () => {
+      const m = document.getElementById("mobile-menu");
+      if (m) m.removeAttribute("open");
+    }));
+</script>

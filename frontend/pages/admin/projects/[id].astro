@@ -1,0 +1,115 @@
+---
+export const prerender = false
+
+import AdminLayout from '../../../layouts/AdminLayout.astro'
+
+const itemId = Astro.params.id
+const isNew = !itemId || itemId === 'new'
+
+let item = {
+  id: '',
+  name: '',
+  description: '',
+  url: '',
+  category: '',
+  sort_order: 0,
+  is_active: true,
+}
+
+if (!isNew) {
+  const response = await fetch(`${Astro.url.origin}/api/admin/projects`, {
+    headers: { cookie: Astro.request.headers.get('cookie') || '' },
+  })
+  if (response.ok) {
+    const data = await response.json()
+    item = (data.projects || []).find(p => p.id === itemId) || item
+  }
+}
+---
+
+<AdminLayout title={isNew ? '添加项目' : '编辑项目'}>
+  <div class="page-header">
+    <h2>{isNew ? '添加项目' : '编辑项目'}</h2>
+    <a href="/admin/projects" class="btn btn-secondary">返回列表</a>
+  </div>
+
+  <div class="card">
+    <form id="form">
+      <div class="form-group">
+        <label for="name">名称 *</label>
+        <input type="text" id="name" name="name" class="form-control" value={item.name} required />
+      </div>
+
+      <div class="form-group">
+        <label for="description">描述</label>
+        <textarea id="description" name="description" class="form-control">{item.description}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="url">项目链接</label>
+        <input type="url" id="url" name="url" class="form-control" value={item.url} placeholder="https://" />
+      </div>
+
+      <div class="form-group">
+        <label for="category">分类</label>
+        <input type="text" id="category" name="category" class="form-control" value={item.category} placeholder="如：research, teaching" />
+      </div>
+
+      <div class="form-group">
+        <label for="sort_order">排序</label>
+        <input type="number" id="sort_order" name="sort_order" class="form-control" value={item.sort_order} />
+      </div>
+
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="is_active" name="is_active" checked={item.is_active} />
+          活跃状态
+        </label>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem;">
+        <button type="submit" class="btn btn-primary">保存</button>
+        <a href="/admin/projects" class="btn btn-secondary">取消</a>
+      </div>
+
+      <div id="result" class="alert" style="display: none; margin-top: 1rem;"></div>
+    </form>
+  </div>
+
+  <script define:vars={{ itemId, isNew }}>
+    document.getElementById('form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        name: form.name.value,
+        description: form.description.value,
+        url: form.url.value,
+        category: form.category.value,
+        sort_order: parseInt(form.sort_order.value) || 0,
+        is_active: form.is_active.checked,
+      };
+
+      const url = isNew ? '/api/admin/projects' : `/api/admin/projects/${itemId}`;
+      const method = isNew ? 'POST' : 'PUT';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      const resultEl = document.getElementById('result');
+      resultEl.style.display = 'block';
+
+      if (res.ok) {
+        resultEl.className = 'alert alert-success';
+        resultEl.textContent = '保存成功！';
+        setTimeout(() => window.location.href = '/admin/projects', 1000);
+      } else {
+        const err = await res.json();
+        resultEl.className = 'alert alert-error';
+        resultEl.textContent = `保存失败: ${err.error}`;
+      }
+    });
+  </script>
+</AdminLayout>

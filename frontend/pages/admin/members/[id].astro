@@ -1,0 +1,132 @@
+---
+export const prerender = false
+
+import AdminLayout from '../../../layouts/AdminLayout.astro'
+
+const memberId = Astro.params.id
+const isNew = !memberId || memberId === 'new'
+
+let member = {
+  id: '',
+  name: '',
+  role: '',
+  bio: '',
+  avatar_key: '',
+  email: '',
+  homepage: '',
+  sort_order: 0,
+  is_active: true,
+}
+
+if (!isNew) {
+  const response = await fetch(`${Astro.url.origin}/api/admin/members/${memberId}`, {
+    headers: { cookie: Astro.request.headers.get('cookie') || '' },
+  })
+  if (response.ok) {
+    const data = await response.json()
+    member = data.member
+  }
+}
+---
+
+<AdminLayout title={isNew ? '添加成员' : '编辑成员'}>
+  <div class="page-header">
+    <h2>{isNew ? '添加成员' : '编辑成员'}</h2>
+    <a href="/admin/members" class="btn btn-secondary">返回列表</a>
+  </div>
+
+  <div class="card">
+    <form id="member-form">
+      <div class="form-group">
+        <label for="name">姓名 *</label>
+        <input type="text" id="name" name="name" class="form-control" value={member.name} required />
+      </div>
+
+      <div class="form-group">
+        <label for="role">角色 *</label>
+        <input type="text" id="role" name="role" class="form-control" value={member.role} required placeholder="如：教授、博士生、硕士生" />
+      </div>
+
+      <div class="form-group">
+        <label for="bio">简介</label>
+        <textarea id="bio" name="bio" class="form-control">{member.bio}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="avatar_key">头像路径</label>
+        <input type="text" id="avatar_key" name="avatar_key" class="form-control" value={member.avatar_key} placeholder="/images/members/xxx.webp" />
+      </div>
+
+      <div class="form-group">
+        <label for="email">邮箱</label>
+        <input type="email" id="email" name="email" class="form-control" value={member.email} />
+      </div>
+
+      <div class="form-group">
+        <label for="homepage">个人主页</label>
+        <input type="url" id="homepage" name="homepage" class="form-control" value={member.homepage} placeholder="https://" />
+      </div>
+
+      <div class="form-group">
+        <label for="sort_order">排序</label>
+        <input type="number" id="sort_order" name="sort_order" class="form-control" value={member.sort_order} />
+      </div>
+
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="is_active" name="is_active" checked={member.is_active} />
+          活跃状态（在前端显示）
+        </label>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem;">
+        <button type="submit" class="btn btn-primary">保存</button>
+        <a href="/admin/members" class="btn btn-secondary">取消</a>
+      </div>
+
+      <div id="result" class="alert" style="display: none; margin-top: 1rem;"></div>
+    </form>
+  </div>
+
+  <script>
+    const memberId = JSON.parse(document.currentScript.dataset.memberId || '""');
+    const isNew = !memberId || memberId === 'new';
+
+    document.getElementById('member-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        name: form.name.value,
+        role: form.role.value,
+        bio: form.bio.value,
+        avatar_key: form.avatar_key.value,
+        email: form.email.value,
+        homepage: form.homepage.value,
+        sort_order: parseInt(form.sort_order.value) || 0,
+        is_active: form.is_active.checked,
+      };
+
+      const url = isNew ? '/api/admin/members' : `/api/admin/members/${memberId}`;
+      const method = isNew ? 'POST' : 'PUT';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      const resultEl = document.getElementById('result');
+      resultEl.style.display = 'block';
+
+      if (res.ok) {
+        resultEl.className = 'alert alert-success';
+        resultEl.textContent = '保存成功！';
+        setTimeout(() => window.location.href = '/admin/members', 1000);
+      } else {
+        const err = await res.json();
+        resultEl.className = 'alert alert-error';
+        resultEl.textContent = `保存失败: ${err.error}`;
+      }
+    });
+  </script>
+</AdminLayout>

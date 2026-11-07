@@ -1,0 +1,108 @@
+---
+export const prerender = false
+
+import AdminLayout from '../../../layouts/AdminLayout.astro'
+
+const itemId = Astro.params.id
+const isNew = !itemId || itemId === 'new'
+
+let item = {
+  id: '',
+  title: '',
+  content: '',
+  icon: '',
+  sort_order: 0,
+  is_active: true,
+}
+
+if (!isNew) {
+  const response = await fetch(`${Astro.url.origin}/api/admin/research`, {
+    headers: { cookie: Astro.request.headers.get('cookie') || '' },
+  })
+  if (response.ok) {
+    const data = await response.json()
+    item = (data.research || []).find(r => r.id === itemId) || item
+  }
+}
+---
+
+<AdminLayout title={isNew ? '添加研究方向' : '编辑研究方向'}>
+  <div class="page-header">
+    <h2>{isNew ? '添加研究方向' : '编辑研究方向'}</h2>
+    <a href="/admin/research" class="btn btn-secondary">返回列表</a>
+  </div>
+
+  <div class="card">
+    <form id="form">
+      <div class="form-group">
+        <label for="title">标题 *</label>
+        <input type="text" id="title" name="title" class="form-control" value={item.title} required />
+      </div>
+
+      <div class="form-group">
+        <label for="content">内容</label>
+        <textarea id="content" name="content" class="form-control" rows="6">{item.content}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="icon">图标路径</label>
+        <input type="text" id="icon" name="icon" class="form-control" value={item.icon} placeholder="/images/showcase/xxx.webp" />
+      </div>
+
+      <div class="form-group">
+        <label for="sort_order">排序</label>
+        <input type="number" id="sort_order" name="sort_order" class="form-control" value={item.sort_order} />
+      </div>
+
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="is_active" name="is_active" checked={item.is_active} />
+          活跃状态
+        </label>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem;">
+        <button type="submit" class="btn btn-primary">保存</button>
+        <a href="/admin/research" class="btn btn-secondary">取消</a>
+      </div>
+
+      <div id="result" class="alert" style="display: none; margin-top: 1rem;"></div>
+    </form>
+  </div>
+
+  <script define:vars={{ itemId, isNew }}>
+    document.getElementById('form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        title: form.title.value,
+        content: form.content.value,
+        icon: form.icon.value,
+        sort_order: parseInt(form.sort_order.value) || 0,
+        is_active: form.is_active.checked,
+      };
+
+      const url = isNew ? '/api/admin/research' : `/api/admin/research/${itemId}`;
+      const method = isNew ? 'POST' : 'PUT';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      const resultEl = document.getElementById('result');
+      resultEl.style.display = 'block';
+
+      if (res.ok) {
+        resultEl.className = 'alert alert-success';
+        resultEl.textContent = '保存成功！';
+        setTimeout(() => window.location.href = '/admin/research', 1000);
+      } else {
+        const err = await res.json();
+        resultEl.className = 'alert alert-error';
+        resultEl.textContent = `保存失败: ${err.error}`;
+      }
+    });
+  </script>
+</AdminLayout>

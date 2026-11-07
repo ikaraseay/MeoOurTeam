@@ -1,0 +1,60 @@
+{
+  "name": "ourteam",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@12.3.4",
+  "engines": {
+    "node": ">=22.23.4"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "test": "node --test test/*.test.ts",
+    "prebuild": "node scripts/apply-config.mjs && node backend/scripts/export-d1-posts.mjs && node scripts/build-text-locations.mjs",
+    "postbuild": "node scripts/build-text-locations.mjs",
+    "predev": "node scripts/apply-config.mjs && node backend/scripts/export-d1-posts.mjs --ensure && node scripts/build-text-locations.mjs",
+    "pretest": "node backend/scripts/export-d1-posts.mjs --ensure",
+    "precheck": "node backend/scripts/export-d1-posts.mjs --ensure",
+    "clean": "node backend/scripts/clean-generated.mjs",
+    "export:posts": "node backend/scripts/export-d1-posts.mjs",
+    "sync": "node backend/scripts/export-d1-posts.mjs",
+    "guard": "node backend/scripts/check-remote-updates.mjs",
+    "hooks:install": "git config core.hooksPath .githooks",
+    "types": "wrangler types --config cloudflare/wrangler.jsonc",
+    "predeploy": "npm run build",
+    "deploy": "wrangler deploy --config dist/server/wrangler.json",
+    "ops": "bash scripts/ops.sh",
+    "hash": "node scripts/hash-password.mjs",
+    "seed": "node backend/scripts/seed-data.mjs",
+    "seed:apply": "node backend/scripts/seed-data.mjs --apply",
+    "seed:json": "node backend/scripts/generate-seed-json.mjs",
+    "data:export": "node scripts/export-data.mjs --pretty",
+    "data:import": "node scripts/import-data.mjs",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "^14.4.3",
+    "@astrojs/rss": "^4.0.19",
+    "@tailwindcss/typography": "^0.5.20",
+    "@tailwindcss/vite": "^4.3.3",
+    "astro": "^7.4.4",
+    "gray-matter": "^4.0.3",
+    "markdown-it": "^15.0.2",
+    "sanitize-html": "^2.17.7",
+    "tailwindcss": "^4.3.3",
+    "htmlparser2": "^12.0.0",
+    "dom-serializer": "^2.0.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.12",
+    "typescript": "^6.0.3",
+    "wrangler": "^4.156.0"
+  },
+  "allowScripts": {
+    "esbuild": true,
+    "workerd": true
+  }
+}

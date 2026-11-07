@@ -1,0 +1,84 @@
+---
+import { t, binding } from "../lib/text-config";
+import Text from "./Text.astro";
+
+import SectionHeader from "./SectionHeader.astro";
+import { site } from "../lib/site";
+import { members } from "../lib/members";
+---
+
+<section
+  id="members"
+  class="px-4 md:px-8 section-space border-b bg-base border-default"
+>
+  <div class="max-w-6xl mx-auto">
+    <SectionHeader
+      eyebrow={t("members.eyebrow001")}
+      index="03"
+      title={t("members.title002")}
+      description={t("members.description003")}
+    />
+
+    <div class="mt-8 grid gap-4 md:gap-6 md:grid-cols-[1.3fr_1fr]">
+      <article class="surface p-6 md:p-9 anim-fade-up">
+        <p class="font-mono text-xs text-accent"><Text k="members.text004" /></p>
+        <h3 class="mt-5 font-bold tracking-tight text-2xl md:text-3xl text-fg">
+          <Text value={site.professor.name} /> <span class="text-base md:text-lg font-normal text-fg-muted"><Text value={site.professor.role} /></span>
+        </h3>
+        <p class="mt-2 text-sm text-fg-muted"><Text value={site.professor.englishName} /></p>
+        <p class="mt-6 leading-relaxed text-fg-muted"><Text value={site.professor.bio} /></p>
+        <a href="#research" class="mt-7 inline-flex text-sm font-medium text-accent underline underline-offset-4">
+          <Text k="members.text005" />
+        </a>
+      </article>
+
+      <div class="surface p-6 md:p-9 flex flex-col anim-fade-up anim-delay-1">
+        <p class="font-mono text-xs text-accent"><Text k="members.text006" /></p>
+        <h3 class="mt-5 font-bold tracking-tight text-xl md:text-2xl text-fg"><Text k="members.text007" /></h3>
+        <p class="mt-4 leading-relaxed text-fg-muted"><Text k="members.text008" /></p>
+        <p class="mt-6 text-sm leading-relaxed text-fg-subtle">
+          <Text k="members.text009" />
+        </p>
+        <a
+          href={site.academy.homepage}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="mt-auto pt-7 inline-flex text-sm font-medium text-accent underline underline-offset-4"
+        >
+          <Text k="members.text010" />
+        </a>
+      </div>
+    </div>
+
+    {members.length > 0 ? (
+      <ul class="mt-6 grid gap-4 md:grid-cols-2">
+        {members.map((member) => (
+          <li class="surface overflow-hidden">
+            {member.photo && (
+              <img data-copy-attrs={JSON.stringify({"alt": binding(t("members.text013", { p0: member.name }))})}
+                src={member.photo}
+                alt={t("members.text013", { p0: member.name })}
+                width="480"
+                height="360"
+                loading="lazy"
+                class="w-full aspect-[4/3] object-cover border-b border-default"
+              />
+            )}
+            <div class="p-5 md:p-6">
+              <p class="font-mono text-xs text-accent"><Text value={member.role} /></p>
+              <h3 class="mt-2 font-bold text-lg text-fg"><Text value={member.name} /></h3>
+              <p class="mt-2 text-sm leading-relaxed text-fg-muted"><Text value={member.focus} /></p>
+              {member.homepage && (
+                <a href={member.homepage} class="mt-4 inline-flex text-sm font-medium text-accent underline underline-offset-4">
+                  <Text k="members.text011" />
+                </a>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p class="mt-6 text-sm text-fg-subtle"><Text k="members.text012" /></p>
+    )}
+  </div>
+</section>

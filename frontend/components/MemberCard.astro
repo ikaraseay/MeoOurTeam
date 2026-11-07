@@ -1,0 +1,75 @@
+---
+import type { Member } from "../lib/members";
+import { t } from "../lib/text-config";
+import Text from "./Text.astro";
+
+interface Props { person: Member }
+const { person } = Astro.props;
+const initial = Array.from(person.name.trim())[0] ?? "";
+---
+
+<article data-reveal class="member-card surface feature-card direction-card">
+  <div class="member-photo">
+    <div class="photo-placeholder" data-photo-placeholder aria-hidden={person.photo ? "true" : undefined}>
+      <span class="portrait-initial" aria-hidden="true">{initial}</span>
+      <span class="portrait-caption"><Text k="members.photoPending" /></span>
+    </div>
+    {person.photo && <img data-member-photo src={person.photo} alt={t("members.text013", { p0: person.name })} width="360" height="480" loading="lazy" decoding="async" />}
+  </div>
+  <div class="member-info">
+    <h3>{person.name}</h3>
+    <p class="member-role">{person.role}</p>
+    <dl class="member-focus">
+      <dt><Text k="members.researchFocus" /></dt>
+      <dd>{person.focus}</dd>
+    </dl>
+    {person.email && <a href={`mailto:${person.email}`} class="member-email" aria-label={t("members.emailTo", { p0: person.name, p1: person.email })}>{person.email}</a>}
+    {person.homepage && <a href={person.homepage} target="_blank" rel="noopener noreferrer" class="member-homepage"><Text k="members.text011" /></a>}
+  </div>
+  {person.bio && <details class="member-biography">
+    <summary><Text k="members.biography" /></summary>
+    <div class="biography-text">{person.bio.split(/\n\s*\n/).filter(Boolean).map((paragraph) => <p>{paragraph}</p>)}</div>
+  </details>}
+</article>
+
+<style>
+  .member-card { display: grid; grid-template-columns: 128px minmax(0, 1fr); gap: 1.5rem; padding: 1.5rem; align-items: start; }
+  .member-photo { position: relative; isolation: isolate; aspect-ratio: 3 / 4; overflow: hidden; border-radius: .875rem; background: linear-gradient(155deg, var(--accent-soft), var(--bg-elev)); border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border)); }
+  .photo-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 1rem; padding: .75rem; color: var(--fg-muted); }
+  .portrait-initial { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; font-size: 1.75rem; font-weight: 500; color: var(--accent); background: var(--bg-elev); border: 1px solid color-mix(in srgb, var(--accent) 16%, transparent); box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 4%, transparent), 0 0 0 14px color-mix(in srgb, var(--accent) 3%, transparent); }
+  .portrait-caption { font-size: .6875rem; letter-spacing: .08em; }
+  .member-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center top; background: var(--bg-elev); }
+  .member-info { min-width: 0; overflow-wrap: anywhere; }
+  h3 { margin: 0; font-size: 1.375rem; font-weight: 700; line-height: 1.4; color: var(--fg); }
+  .member-role { width: fit-content; margin-top: .625rem; padding: .2rem .6rem; border-radius: .375rem; background: var(--accent-soft); font-size: .8125rem; color: var(--accent); line-height: 1.6; }
+  .member-focus { margin: 1rem 0 0; padding-top: .875rem; border-top: 1px solid var(--border); font-size: .875rem; line-height: 1.75; }
+  dt { font-size: .6875rem; letter-spacing: .06em; color: var(--fg-muted); }
+  dd { margin: .25rem 0 0; color: var(--fg-muted); }
+  .member-email, .member-homepage { display: inline-flex; align-items: center; gap: .35rem; margin-top: .5rem; min-height: 44px; font-size: .8125rem; font-weight: 600; color: var(--accent); text-decoration: underline; text-underline-offset: 4px; }
+  .member-email { margin-right: 1rem; overflow-wrap: anywhere; }
+  .member-biography { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: .25rem; min-width: 0; }
+  .member-biography summary { cursor: pointer; min-height: 44px; align-content: center; color: var(--accent); font-size: .875rem; font-weight: 600; }
+  .biography-text { display: grid; gap: .875rem; color: var(--fg-muted); font-size: .875rem; line-height: 1.9; overflow-wrap: anywhere; }
+  .biography-text p { margin: 0; white-space: pre-line; }
+  @media (max-width: 1100px) {
+    .member-card { grid-template-columns: 104px minmax(0, 1fr); gap: 1rem; padding: 1.25rem; }
+  }
+  @media (max-width: 400px) {
+    .member-card { grid-template-columns: 88px minmax(0, 1fr); padding: 1rem; }
+    .portrait-initial { width: 48px; height: 48px; font-size: 1.375rem; }
+    .portrait-caption { font-size: .625rem; letter-spacing: 0; }
+  }
+</style>
+
+<script>
+  // Keep the reserved portrait area if a previously uploaded image is removed.
+  // Check already-completed failures too, since cached errors may precede setup.
+  document.querySelectorAll<HTMLImageElement>("[data-member-photo]").forEach((image) => {
+    const showPlaceholder = () => {
+      image.hidden = true;
+      image.parentElement?.querySelector("[data-photo-placeholder]")?.removeAttribute("aria-hidden");
+    };
+    image.addEventListener("error", showPlaceholder, { once: true });
+    if (image.complete && image.naturalWidth === 0) showPlaceholder();
+  });
+</script>

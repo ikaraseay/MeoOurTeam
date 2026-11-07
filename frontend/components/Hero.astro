@@ -1,0 +1,87 @@
+---
+import Text from "./Text.astro";
+
+import { site } from "../lib/site";
+
+const { professor } = site;
+---
+
+<section
+  id="home"
+  class="px-4 md:px-8 section-space border-b bg-base border-default"
+>
+  <div class="max-w-6xl mx-auto grid lg:grid-cols-[1.2fr_1fr] gap-12 lg:gap-20 items-center">
+    <div class="anim-fade-up">
+      <span class="eyebrow"><Text k="hero.text001" /></span>
+      <h1
+        class="font-bold tracking-tight mt-4 text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-fg"
+      >
+        <Text value={professor.name} /> <span class="text-accent"><Text value={professor.role} /></span>
+      </h1>
+      <p
+        class="mt-6 max-w-xl text-base md:text-lg leading-relaxed text-fg-muted"
+      >
+        <Text value={professor.bio} />
+      </p>
+
+      <div class="mt-8 flex flex-wrap gap-3">
+        <a
+          href="#outcomes"
+          class="rounded-full px-5 py-2.5 text-sm font-medium transition-colors bg-accent text-accent-fg"
+        >
+          <Text k="hero.text002" />
+        </a>
+        <a
+          href="/#research"
+          class="rounded-full px-5 py-2.5 text-sm font-medium transition-colors border border-default text-fg"
+        >
+          <Text k="hero.text003" />
+        </a>
+      </div>
+
+      <dl
+        class="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 max-w-xl text-sm"
+      >
+        {
+          professor.stats.map((s) => (
+            <div>
+              <dt class="text-xs text-fg-subtle"><Text value={s.label} /></dt>
+              <dd class="font-medium mt-1 text-fg">
+                <Text value={s.value} />
+              </dd>
+            </div>
+          ))
+        }
+      </dl>
+    </div>
+
+    {/* Typographic identity panel; no unverified portrait is implied. */}
+    <div class="relative anim-fade-up anim-delay-2">
+      <div
+        class="section-index absolute -top-6 -right-2 text-7xl md:text-9xl"
+        aria-hidden="true"
+      >
+        01
+      </div>
+      <div
+        class="surface aspect-[4/5] w-full max-w-sm mx-auto flex items-center justify-center p-6 shadow-card-lg"
+      >
+        <div class="text-center space-y-3">
+          <div
+            class="mx-auto h-24 w-24 md:h-28 md:w-28 rounded-full flex items-center justify-center text-accent-fg text-3xl md:text-4xl font-bold bg-accent"
+          >
+            <Text value={professor.name.charAt(0)} />
+          </div>
+          <p class="font-bold tracking-tight text-lg text-fg">
+            <Text value={professor.name} /> <Text value={professor.role} />
+          </p>
+          <p class="text-sm text-fg-muted">
+            <Text value={professor.englishName} />
+          </p>
+          <div class="h-px w-12 mx-auto bg-border"></div>
+          <p class="text-xs pt-2 text-fg-subtle"><Text k="hero.text004" /></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

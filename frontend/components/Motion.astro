@@ -1,0 +1,89 @@
+<!-- Progressive enhancement: content stays visible if JavaScript is unavailable. -->
+<script>
+  const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const active = new Map<HTMLElement, Animation>();
+  const elements = document.querySelectorAll<HTMLElement>("[data-reveal]");
+
+  // One pointer listener and at most one layout read per frame, regardless of
+  // how many publication/member cards the page contains.
+  const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
+  let illuminated: HTMLElement | null = null;
+  let pointerFrame = 0;
+  let pointerX = 0;
+  let pointerY = 0;
+  const clearLight = () => {
+    cancelAnimationFrame(pointerFrame);
+    pointerFrame = 0;
+    illuminated?.removeAttribute("data-pointer-glow");
+    illuminated = null;
+  };
+  document.addEventListener("pointermove", (event) => {
+    if (!finePointer.matches || preference.matches || event.pointerType === "touch") {
+      clearLight();
+      return;
+    }
+    const card = event.target instanceof Element
+      ? event.target.closest<HTMLElement>(".feature-card") : null;
+    if (card !== illuminated) {
+      clearLight();
+      illuminated = card;
+    }
+    if (!card) return;
+    pointerX = event.clientX;
+    pointerY = event.clientY;
+    if (pointerFrame) return;
+    pointerFrame = requestAnimationFrame(() => {
+      pointerFrame = 0;
+      if (!illuminated) return;
+      const bounds = illuminated.getBoundingClientRect();
+      illuminated.style.setProperty("--pointer-x", `${pointerX - bounds.left}px`);
+      illuminated.style.setProperty("--pointer-y", `${pointerY - bounds.top}px`);
+      illuminated.setAttribute("data-pointer-glow", "");
+    });
+  }, { passive: true });
+  document.documentElement.addEventListener("pointerleave", clearLight);
+  document.addEventListener("pointercancel", clearLight);
+  window.addEventListener("blur", clearLight);
+  window.addEventListener("pagehide", clearLight);
+  window.addEventListener("scroll", clearLight, { passive: true, capture: true });
+  window.addEventListener("resize", clearLight, { passive: true });
+  finePointer.addEventListener("change", clearLight);
+  preference.addEventListener("change", clearLight);
+
+  if ("IntersectionObserver" in window) {
+    const observer = new IntersectionObserver((entries) => {
+      let sequence = 0;
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        const element = entry.target as HTMLElement;
+        observer.unobserve(element);
+        if (preference.matches || element.contains(document.activeElement)) continue;
+        // Independent translate leaves the card's hover transform untouched.
+        const animation = element.animate(
+          [{ opacity: 0.25, translate: "0 12px" }, { opacity: 1, translate: "0 0" }],
+          { duration: 460, delay: Math.min(sequence++, 3) * 55,
+            easing: "cubic-bezier(0.16, 1, 0.3, 1)", fill: "backwards" },
+        );
+        active.set(element, animation);
+        animation.onfinish = () => active.delete(element);
+        animation.oncancel = () => active.delete(element);
+      }
+    }, { threshold: 0.05 });
+    elements.forEach((element) => observer.observe(element));
+
+    document.addEventListener("focusin", (event) => {
+      if (!(event.target instanceof Element)) return;
+      const card = event.target.closest<HTMLElement>("[data-reveal]");
+      if (card) {
+        observer.unobserve(card);
+        active.get(card)?.cancel();
+      }
+    });
+    preference.addEventListener("change", () => {
+      if (preference.matches) active.forEach((animation) => animation.cancel());
+    });
+    window.addEventListener("pagehide", () => {
+      active.forEach((animation) => animation.cancel());
+    });
+  }
+</script>

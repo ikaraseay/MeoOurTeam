@@ -1,0 +1,8 @@
+---
+import { t, binding, type TextKey, type TextParams } from '../lib/text-config';
+interface Props { k?: TextKey; params?: TextParams; value?: unknown }
+const { k, params, value } = Astro.props;
+const content = k ? t(k, params) : String(value ?? '');
+const descriptor = k ? JSON.stringify({ key: k, params }) : binding(content);
+---
+<span data-copy={descriptor}>{content}</span>

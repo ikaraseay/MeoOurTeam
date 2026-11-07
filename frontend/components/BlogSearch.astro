@@ -1,0 +1,69 @@
+---
+import { t, binding } from "../lib/text-config";
+import Text from "./Text.astro";
+---
+<div class="mb-10" data-blog-search>
+  <label for="blog-search" class="block text-sm font-medium text-fg mb-2"><Text k="blogsearch.text001" /></label>
+  <input data-copy-attrs={JSON.stringify({"placeholder": binding(t("blogsearch.placeholder002"))})} id="blog-search" type="search" autocomplete="off" placeholder={t("blogsearch.placeholder002")} class="w-full max-w-xl rounded-lg border border-default bg-base text-fg px-4 py-3" />
+  <p class="text-sm text-fg-muted mt-2" aria-live="polite" data-search-status></p>
+  <ul class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6" data-search-results hidden></ul>
+</div>
+
+<script>
+import { t } from "../lib/text-config";
+
+  interface SearchItem { title: string; description: string; tags: string[]; href: string }
+  const root = document.querySelector<HTMLElement>("[data-blog-search]");
+  const input = root?.querySelector<HTMLInputElement>("input");
+  const list = root?.querySelector<HTMLUListElement>("[data-search-results]");
+  const status = root?.querySelector<HTMLElement>("[data-search-status]");
+  const normal = document.querySelectorAll<HTMLElement>("[data-blog-listing]");
+  if (root && input && list && status) {
+    let index: SearchItem[] | null = null;
+    let failed = false;
+    let revision = 0;
+    const render = async () => {
+      const current = ++revision;
+      const query = input.value.trim().toLocaleLowerCase();
+      if (!query) {
+        failed = false;
+        list.replaceChildren();
+        list.hidden = true;
+        normal.forEach((el) => { el.hidden = false; });
+        status.textContent = "";
+        return;
+      }
+      if (!index && !failed) {
+        try {
+          const response = await fetch("/blog/search-index.json");
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          index = await response.json() as SearchItem[];
+        } catch {
+          failed = true;
+          status.textContent = t("blogsearch.text003");
+          return;
+        }
+      }
+      if (!index) return;
+      if (current !== revision) return;
+      const matches = index.filter((item) => [item.title, item.description, ...item.tags].some((value) => value.toLocaleLowerCase().includes(query)));
+      list.replaceChildren(...matches.map((item) => {
+        const li = document.createElement("li");
+        li.className = "surface surface-hover p-6";
+        const link = document.createElement("a");
+        link.href = item.href;
+        link.className = "font-bold text-fg hover:underline";
+        link.textContent = item.title;
+        const description = document.createElement("p");
+        description.className = "mt-2 text-sm text-fg-muted";
+        description.textContent = item.description;
+        li.append(link, description);
+        return li;
+      }));
+      normal.forEach((el) => { el.hidden = true; });
+      list.hidden = matches.length === 0;
+      status.textContent = matches.length ? t("blogsearch.text004", { p0: matches.length }) : t("blogsearch.text005");
+    };
+    input.addEventListener("input", () => { void render(); });
+  }
+</script>

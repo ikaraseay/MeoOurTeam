@@ -1,0 +1,155 @@
+---
+import { t } from "../../lib/text-config";
+import Text from "../../components/Text.astro";
+
+import Layout from "../../layouts/Layout.astro";
+import Navbar from "../../components/Navbar.astro";
+import Footer from "../../components/Contact.astro";
+import type { GetStaticPaths } from "astro";
+import { getPublishedPosts } from "../../lib/posts";
+import { formatDate } from "../../lib/format";
+import { tagHref } from "../../lib/posts";
+import { site } from "../../lib/site";
+import { renderSafeMarkdown } from "../../lib/markdown.mjs";
+
+export const getStaticPaths = (async () => {
+  const posts = await getPublishedPosts();
+  return posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
+}) satisfies GetStaticPaths;
+
+const { post } = Astro.props;
+const bodyHtml = renderSafeMarkdown(post.body ?? "");
+
+const all = await getPublishedPosts();
+const idx = all.findIndex((p) => p.id === post.id);
+const prev = idx > 0 ? all[idx - 1] : null;
+const next = idx >= 0 && idx < all.length - 1 ? all[idx + 1] : null;
+const canonicalPath = `/blog/${post.id}/`;
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  headline: post.data.title,
+  description: post.data.description,
+  datePublished: post.data.pubDate.toISOString(),
+  ...(post.data.updatedDate ? { dateModified: post.data.updatedDate.toISOString() } : {}),
+  author: { "@type": "Person", name: post.data.author },
+  publisher: { "@type": "Organization", name: site.name },
+  keywords: post.data.tags,
+  inLanguage: site.language,
+  mainEntityOfPage: new URL(canonicalPath, site.url).href,
+};
+---
+
+<Layout title={t("common.pageTitle", { title: post.data.title, site: site.name })} description={post.data.description} canonicalPath={canonicalPath} jsonLd={jsonLd}>
+  <Navbar />
+  <main>
+    <!-- Article header -->
+    <section
+      class="px-4 md:px-8 py-12 md:py-16 border-b bg-elev border-default"
+    >
+      <div class="max-w-3xl mx-auto anim-fade-up">
+        <a
+          href="/blog/"
+          class="inline-flex items-center gap-1 text-xs md:text-sm transition-colors text-fg-muted"
+        >
+          <span>《</span><span><Text k="article.text001" /></span>
+        </a>
+        <div class="flex items-center gap-2 flex-wrap mt-6">
+          {
+            post.data.tags.map((t) => (
+              <a href={tagHref(t)}
+                class="font-mono text-xs px-2 py-1 rounded-full border text-accent border-default"
+              >
+                {t}
+              </a>
+            ))
+          }
+        </div>
+        <h1
+          class="font-bold tracking-tight mt-3 text-2xl md:text-3xl lg:text-4xl text-fg"
+        >
+          {post.data.title}
+        </h1>
+        <div
+          class="mt-4 flex items-center gap-4 text-xs md:text-sm flex-wrap text-fg-subtle"
+        >
+          <span>{post.data.author}</span>
+          <span>·</span>
+          <time datetime={post.data.pubDate.toISOString()}>
+            <Text value={formatDate(post.data.pubDate)} />
+          </time>
+          {
+            post.data.updatedDate && (
+              <>
+                <span>·</span>
+                <span><Text k="article.text002" /> <Text value={formatDate(post.data.updatedDate)} /></span>
+              </>
+            )
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- Article body -->
+    <article
+      class="px-4 md:px-8 section-space bg-base"
+    >
+      <div
+        class="prose prose-theme max-w-3xl mx-auto
+          prose-headings:font-bold prose-headings:tracking-tight
+          prose-a:no-underline hover:prose-a:underline
+          prose-code:rounded-md prose-code:px-1.5 prose-code:py-0.5
+          prose-pre:rounded-xl text-fg"
+      >
+        <Fragment set:html={bodyHtml} />
+      </div>
+    </article>
+
+    <!-- Prev / Next -->
+    {
+      (prev || next) && (
+        <nav
+          class="px-4 md:px-8 py-12 border-t bg-base border-default"
+        >
+          <div class="max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            {prev ? (
+              <a
+                href={`/blog/${prev.id}/`}
+                class="surface surface-hover p-6 transition-colors"
+              >
+                <p class="text-xs text-fg-subtle">
+                  <Text k="article.text003" />
+                </p>
+                <p
+                  class="font-bold tracking-tight text-base md:text-lg mt-1 transition-colors text-fg"
+                >
+                  《 {prev.data.title}
+                </p>
+              </a>
+            ) : (
+              <div />
+            )}
+            {next ? (
+              <a
+                href={`/blog/${next.id}/`}
+                class="surface surface-hover p-6 transition-colors md:text-right"
+              >
+                <p class="text-xs text-fg-subtle">
+                  <Text k="article.text004" />
+                </p>
+                <p
+                  class="font-bold tracking-tight text-base md:text-lg mt-1 transition-colors text-fg"
+                >
+                  {next.data.title} 》
+                </p>
+              </a>
+            ) : (
+              <div />
+            )}
+          </div>
+        </nav>
+      )
+    }
+  </main>
+  <Footer />
+</Layout>

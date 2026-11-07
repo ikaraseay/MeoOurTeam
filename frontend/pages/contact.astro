@@ -1,0 +1,94 @@
+---
+import { t } from "../lib/text-config";
+import Text from "../components/Text.astro";
+import PageFrame from "../components/PageFrame.astro";
+import { site } from "../lib/site";
+import { contactFaq, graduatePrograms, applicationMaterials, interviewPreparation, recruitmentDocument, facultyMailto, graduateMailto } from "../lib/contact";
+---
+
+<PageFrame title={t("contact.title008")} eyebrow={t("contact.eyebrow009")} description={t("contact.description010")} canonicalPath="/contact/">
+  <section class="px-4 md:px-8 section-space bg-base">
+    <div class="max-w-6xl mx-auto">
+      <nav class="audience-nav" aria-label={t("contact.audienceNav")}>
+        <a href="#postdocs"><Text k="contact.title017" /><span aria-hidden="true"> ↓</span></a>
+        <a href="#students"><Text k="contact.title015" /><span aria-hidden="true"> ↓</span></a>
+      </nav>
+
+      <section id="postdocs" class="recruitment-section surface p-6 md:p-8" aria-labelledby="faculty-title">
+        <p class="font-mono text-xs text-accent"><Text k="contact.facultyEyebrow" /></p>
+        <h2 id="faculty-title" class="mt-3 section-title font-bold text-fg"><Text k="contact.title017" /></h2>
+        <p class="mt-4 text-sm leading-relaxed text-fg-muted"><Text k="contact.text018" /></p>
+        <div class="mt-6 grid gap-6 md:grid-cols-2">
+          <div><h3 class="font-semibold text-fg"><Text k="contact.facultyFocus" /></h3><p class="mt-3 text-sm leading-relaxed text-fg-muted"><Text k="contact.facultyDirections" /></p></div>
+          <div><h3 class="font-semibold text-fg"><Text k="contact.facultyPreparation" /></h3><p class="mt-3 text-sm leading-relaxed text-fg-muted"><Text k="contact.facultyPreparationText" /></p></div>
+        </div>
+        <p class="notice mt-6"><Text k="contact.facultyNotice" /></p>
+        <div class="actions mt-5">
+          <a href={facultyMailto} class="primary-action"><Text k="contact.facultyAction" /></a>
+          <a href="/members/" class="text-link"><Text k="contact.teamAction" /></a>
+        </div>
+      </section>
+
+      <section id="students" class="recruitment-section surface mt-6 p-6 md:p-8" aria-labelledby="students-title">
+        <div class="section-heading">
+          <div><p class="font-mono text-xs text-accent"><Text k="contact.studentEyebrow" /></p><h2 id="students-title" class="mt-3 section-title font-bold text-fg"><Text k="contact.title015" /></h2></div>
+          <a href={recruitmentDocument} target="_blank" rel="noopener noreferrer" class="text-link"><Text k="contact.pdfAction" /></a>
+        </div>
+        <p class="mt-4 text-sm leading-relaxed text-fg-muted"><Text k="contact.text016" /></p>
+        <div class="content-block">
+          <h3 class="font-semibold text-lg text-fg"><Text k="contact.programsTitle" /></h3>
+          <div class="mt-4 grid gap-6 md:grid-cols-2">
+            {graduatePrograms.map((group) => <div><h4 class="text-sm font-semibold text-accent"><Text value={group.title} /></h4><ul class="program-list mt-3">{group.items.map((item) => <li><span class="program-code">{item.code}</span><Text value={item.name} /></li>)}</ul></div>)}
+          </div>
+        </div>
+        <div class="content-block"><h3 class="font-semibold text-fg"><Text k="contact.expectationsTitle" /></h3><p class="mt-3 text-sm leading-relaxed text-fg-muted"><Text k="contact.expectationsText" /></p></div>
+        <div class="content-block grid gap-6 md:grid-cols-2">
+          <div><h3 class="font-semibold text-fg"><Text k="contact.materialsTitle" /></h3><ul class="preparation-list mt-3">{applicationMaterials.map((item) => <li><Text value={item} /></li>)}</ul><p class="mt-3 text-xs leading-relaxed text-fg-muted"><Text k="contact.materialsNote" /></p></div>
+          <div><h3 class="font-semibold text-fg"><Text k="contact.interviewTitle" /></h3><ul class="preparation-list mt-3">{interviewPreparation.map((item) => <li><Text value={item} /></li>)}</ul></div>
+        </div>
+        <div class="content-block">
+          <h3 class="font-semibold text-fg"><Text k="contact.applyTitle" /></h3>
+          <dl class="mt-4 grid gap-4 md:grid-cols-2 text-sm">
+            <div><dt class="text-fg-muted"><Text k="contact.mailTo" /></dt><dd class="mt-1"><a href={`mailto:${site.contact.email}`} class="email-link">{site.contact.email}</a></dd></div>
+            <div><dt class="text-fg-muted"><Text k="contact.mailCc" /></dt><dd class="mt-1 flex flex-col gap-1">{site.contact.graduateCc.map((email) => <a href={`mailto:${email}`} class="email-link">{email}</a>)}</dd></div>
+          </dl>
+          <div class="actions mt-5"><a href={graduateMailto} class="primary-action"><Text k="contact.applyAction" /></a><a href="/news/?type=admissions" class="text-link"><Text k="contact.officialNotice" /></a></div>
+          <p class="mt-5 text-xs leading-relaxed text-fg-muted"><Text k="contact.sourceNote" /></p>
+        </div>
+      </section>
+
+      <section class="mt-10" aria-labelledby="contact-guide">
+        <h2 id="contact-guide" class="section-title font-bold text-fg"><Text k="contact.guideTitle" /></h2>
+        <p class="mt-3 text-sm text-fg-muted"><Text k="contact.guideDescription" /></p>
+        <div class="mt-5 grid gap-3">{contactFaq.map((item) => <details class="surface p-5 md:p-6"><summary class="cursor-pointer font-semibold text-fg leading-relaxed"><Text value={item.question} /></summary><p class="mt-4 text-sm leading-relaxed text-fg-muted"><Text value={item.answer} /></p></details>)}</div>
+      </section>
+
+      <section id="cooperation" class="recruitment-section mt-8 surface p-6 md:p-8" aria-labelledby="contact-title">
+        <h2 id="contact-title" class="text-lg font-bold text-fg"><Text k="contact.contactTitle" /></h2>
+        <dl class="mt-5 grid gap-5 md:grid-cols-2 text-sm">
+          <div><dt class="text-fg-subtle"><Text k="contact.text011" /></dt><dd class="mt-1 text-fg"><Text value={site.contact.address} /></dd></div>
+          <div><dt class="text-fg-subtle"><Text k="contact.text012" /></dt><dd class="mt-1"><a href={`mailto:${site.contact.email}`} class="email-link">{site.contact.email}</a></dd></div>
+          <div><dt class="text-fg-subtle"><Text k="contact.text013" /></dt><dd class="mt-1"><a href={site.contact.homepage} target="_blank" rel="noopener noreferrer" class="text-link"><Text k="contact.text014" /></a></dd></div>
+        </dl>
+      </section>
+    </div>
+  </section>
+</PageFrame>
+
+<style>
+  .audience-nav, .actions { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1.25rem; }
+  .audience-nav { margin-bottom: 1.5rem; }
+  .audience-nav a { min-height: 44px; display: inline-flex; align-items: center; gap: 1rem; border: 1px solid var(--border); border-radius: 999px; padding: .5rem 1rem; color: var(--accent); background: var(--accent-soft); font-size: .875rem; font-weight: 600; }
+  .recruitment-section { scroll-margin-top: 7rem; }
+  .section-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem 1.5rem; }
+  .content-block { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+  .program-list { display: grid; gap: .5rem; color: var(--fg-muted); font-size: .875rem; }
+  .program-list li { display: flex; align-items: baseline; gap: .875rem; }
+  .program-code { flex-shrink: 0; color: var(--accent); font-family: monospace; font-variant-numeric: tabular-nums; }
+  .preparation-list { display: grid; gap: .625rem; padding-left: 1.25rem; list-style: disc; color: var(--fg-muted); font-size: .875rem; line-height: 1.75; }
+  .preparation-list li::marker { color: var(--accent); }
+  .notice { color: var(--fg-muted); font-size: .8125rem; line-height: 1.8; }
+  .primary-action { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: .625rem 1.25rem; border-radius: 999px; background: var(--accent); color: var(--accent-fg); font-size: .875rem; font-weight: 600; }
+  .text-link { display: inline-flex; align-items: center; min-height: 44px; color: var(--accent); font-size: .875rem; text-decoration: underline; text-underline-offset: 4px; }
+  .email-link { display: inline-block; overflow-wrap: anywhere; color: var(--accent); text-decoration: underline; text-underline-offset: 4px; }
+</style>

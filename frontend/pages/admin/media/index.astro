@@ -1,0 +1,109 @@
+---
+export const prerender = false
+
+import AdminLayout from '../../../layouts/AdminLayout.astro'
+
+const response = await fetch(`${Astro.url.origin}/api/admin/media`, {
+  headers: { cookie: Astro.request.headers.get('cookie') || '' },
+})
+
+let items = []
+if (response.ok) {
+  const data = await response.json()
+  items = data.media || []
+}
+---
+
+<AdminLayout title="媒体库">
+  <div class="page-header">
+    <h2>媒体库</h2>
+  </div>
+
+  <div class="card" style="margin-bottom: 1.5rem;">
+    <h3>上传文件</h3>
+    <form id="upload-form" style="margin-top: 1rem;">
+      <div class="form-group">
+        <label for="file">选择文件</label>
+        <input type="file" id="file" name="file" class="form-control" required />
+      </div>
+      <div class="form-group">
+        <label for="alt">替代文本</label>
+        <input type="text" id="alt" name="alt" class="form-control" placeholder="描述图片内容" />
+      </div>
+      <button type="submit" class="btn btn-primary">上传</button>
+      <div id="upload-result" class="alert" style="display: none; margin-top: 1rem;"></div>
+    </form>
+  </div>
+
+  <div class="media-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
+    {items.map((item) => (
+      <div class="card media-item">
+        <img src={`/api/admin/media/${item.id}?key=${item.key}`} alt={item.alt} style="width: 100%; height: 150px; object-fit: cover; border-radius: 4px;" />
+        <div style="margin-top: 0.5rem; font-size: 0.875rem;">
+          <div style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{item.filename}</div>
+          <div style="color: var(--muted);">{(item.size / 1024).toFixed(1)} KB</div>
+          <div style="margin-top: 0.5rem; display: flex; gap: 0.25rem;">
+            <button class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;" onclick="copyUrl('{item.key}')">复制路径</button>
+            <button class="btn btn-danger" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;" data-id={item.id} onclick="deleteMedia(this)">删除</button>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+
+  {items.length === 0 && (
+    <div class="card" style="text-align: center; color: var(--muted);">
+      暂无媒体文件，上传第一张图片开始
+    </div>
+  )}
+
+  <script>
+    document.getElementById('upload-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData();
+      formData.append('file', form.file.files[0]);
+      formData.append('alt', form.alt.value);
+
+      const resultEl = document.getElementById('upload-result');
+      resultEl.style.display = 'block';
+      resultEl.textContent = '上传中...';
+
+      try {
+        const res = await fetch('/api/admin/media', { method: 'POST', body: formData });
+        if (res.ok) {
+          resultEl.className = 'alert alert-success';
+          resultEl.textContent = '上传成功！';
+          setTimeout(() => location.reload(), 1000);
+        } else {
+          const err = await res.json();
+          resultEl.className = 'alert alert-error';
+          resultEl.textContent = `上传失败: ${err.error}`;
+        }
+      } catch (err) {
+        resultEl.className = 'alert alert-error';
+        resultEl.textContent = '上传失败: 网络错误';
+      }
+    });
+
+    async function deleteMedia(btn) {
+      if (!confirm('确定要删除吗？')) return;
+      const id = btn.dataset.id;
+      const res = await fetch(`/api/admin/media/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        btn.closest('.media-item').remove();
+      } else {
+        alert('删除失败');
+      }
+    }
+    window.deleteMedia = deleteMedia;
+
+    function copyUrl(key) {
+      const url = `/media/${key}`;
+      navigator.clipboard.writeText(url).then(() => {
+        alert('路径已复制: ' + url);
+      });
+    }
+    window.copyUrl = copyUrl;
+  </script>
+</AdminLayout>

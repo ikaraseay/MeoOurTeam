@@ -1,0 +1,72 @@
+---
+import { t } from "../lib/text-config";
+import Text from "./Text.astro";
+
+import { site } from "../lib/site";
+
+const { academy } = site;
+
+const highlights = [
+  { title: t("academy.title005"), desc: t("academy.desc006") },
+  { title: t("academy.title007"), desc: t("academy.desc008") },
+  { title: t("academy.title009"), desc: t("academy.desc010") },
+];
+---
+
+<section
+  id="about"
+  class="px-4 md:px-8 section-space border-b bg-elev border-default"
+>
+  <div class="max-w-6xl mx-auto grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+    <div class="anim-fade-up">
+      <span class="eyebrow"><Text k="academy.text001" /></span>
+      <h2
+        class="font-bold tracking-tight mt-4 page-title text-fg"
+      >
+        <Text k="academy.text002" /><Text value={academy.name} />
+      </h2>
+      <p class="mt-4 max-w-md text-base md:text-lg leading-relaxed text-fg-muted">
+        <Text value={academy.name} /><Text k="academy.text003" />
+      </p>
+
+      <dl class="mt-6 space-y-3 text-sm">
+        {
+          academy.facts.map((f) => (
+            <div class="flex gap-3">
+              <dt class="w-20 shrink-0 text-fg-subtle"><Text value={f.label} /></dt>
+              <dd class="text-fg"><Text value={f.value} /></dd>
+            </div>
+          ))
+        }
+      </dl>
+
+      <div class="mt-8 flex flex-wrap gap-3">
+        <a
+          href={academy.homepage}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="rounded-full px-5 py-2.5 text-sm font-medium transition-colors bg-accent text-accent-fg"
+        >
+          <Text k="academy.text004" />
+        </a>
+      </div>
+    </div>
+
+    {/* Three highlights as a simple list */}
+    <ul class="space-y-3 anim-fade-up anim-delay-2">
+      {
+        highlights.map((h, i) => (
+          <li class="surface surface-hover p-6 flex items-start gap-4">
+            <span class="font-mono text-2xl shrink-0 text-accent">
+              <Text value={String(i + 1).padStart(2, "0")} />
+            </span>
+            <div>
+              <p class="font-bold tracking-tight text-fg"><Text value={h.title} /></p>
+              <p class="text-sm mt-1 text-fg-muted"><Text value={h.desc} /></p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>

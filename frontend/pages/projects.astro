@@ -1,0 +1,30 @@
+---
+import { t } from "../lib/text-config";
+
+import PageFrame from "../components/PageFrame.astro";
+import { projects } from "../lib/research-materials";
+---
+
+<PageFrame
+  title={t("projects.title001")}
+  eyebrow={t("projects.eyebrow002")}
+  description={t("projects.description003")}
+  canonicalPath="/projects/"
+>
+  <section class="px-4 md:px-8 section-space bg-base">
+    <div class="max-w-6xl mx-auto">
+      <div class="grid gap-5 md:grid-cols-2">
+        {projects.map((project) => (
+          <article class="surface direction-card p-6 flex flex-col">
+            <div class="flex flex-wrap items-center gap-3 font-mono text-xs">
+              <span class="text-fg-muted">{project.startYear}</span>
+              <span class="text-fg-subtle">{project.source}</span>
+            </div>
+            <h2 class="mt-3 font-bold tracking-tight text-lg md:text-xl text-fg">{project.title}</h2>
+            <p class="mt-auto pt-5 text-sm leading-relaxed text-fg-muted">{project.keywords.join(" · ")}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+</PageFrame>

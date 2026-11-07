@@ -1,0 +1,130 @@
+---
+export const prerender = false
+
+import AdminLayout from '../../../layouts/AdminLayout.astro'
+
+const itemId = Astro.params.id
+const isNew = !itemId || itemId === 'new'
+
+let item = {
+  id: '',
+  title: '',
+  content: '',
+  summary: '',
+  pub_date: '',
+  category: '',
+  tags: '[]',
+  status: 'draft',
+  sort_order: 0,
+}
+
+if (!isNew) {
+  const response = await fetch(`${Astro.url.origin}/api/admin/news`, {
+    headers: { cookie: Astro.request.headers.get('cookie') || '' },
+  })
+  if (response.ok) {
+    const data = await response.json()
+    item = (data.news || []).find(n => n.id === itemId) || item
+  }
+}
+---
+
+<AdminLayout title={isNew ? '发布新闻' : '编辑新闻'}>
+  <div class="page-header">
+    <h2>{isNew ? '发布新闻' : '编辑新闻'}</h2>
+    <a href="/admin/news" class="btn btn-secondary">返回列表</a>
+  </div>
+
+  <div class="card">
+    <form id="form">
+      <div class="form-group">
+        <label for="title">标题 *</label>
+        <input type="text" id="title" name="title" class="form-control" value={item.title} required />
+      </div>
+
+      <div class="form-group">
+        <label for="summary">摘要</label>
+        <textarea id="summary" name="summary" class="form-control" rows="3">{item.summary}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="content">内容 *</label>
+        <textarea id="content" name="content" class="form-control" rows="12" required>{item.content}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="category">分类</label>
+        <input type="text" id="category" name="category" class="form-control" value={item.category} placeholder="如：news, announcement" />
+      </div>
+
+      <div class="form-group">
+        <label for="pub_date">发布日期</label>
+        <input type="date" id="pub_date" name="pub_date" class="form-control" value={item.pub_date || ''} />
+      </div>
+
+      <div class="form-group">
+        <label for="tags">标签 (JSON 数组)</label>
+        <input type="text" id="tags" name="tags" class="form-control" value={item.tags} placeholder='["标签1", "标签2"]' />
+      </div>
+
+      <div class="form-group">
+        <label for="status">状态</label>
+        <select id="status" name="status" class="form-control">
+          <option value="draft" selected={item.status === 'draft'}>草稿</option>
+          <option value="published" selected={item.status === 'published'}>已发布</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="sort_order">排序</label>
+        <input type="number" id="sort_order" name="sort_order" class="form-control" value={item.sort_order} />
+      </div>
+
+      <div style="display: flex; gap: 0.5rem;">
+        <button type="submit" class="btn btn-primary">保存</button>
+        <a href="/admin/news" class="btn btn-secondary">取消</a>
+      </div>
+
+      <div id="result" class="alert" style="display: none; margin-top: 1rem;"></div>
+    </form>
+  </div>
+
+  <script define:vars={{ itemId, isNew }}>
+    document.getElementById('form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        title: form.title.value,
+        summary: form.summary.value,
+        content: form.content.value,
+        category: form.category.value,
+        pub_date: form.pub_date.value || null,
+        tags: form.tags.value,
+        status: form.status.value,
+        sort_order: parseInt(form.sort_order.value) || 0,
+      };
+
+      const url = isNew ? '/api/admin/news' : `/api/admin/news/${itemId}`;
+      const method = isNew ? 'POST' : 'PUT';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      const resultEl = document.getElementById('result');
+      resultEl.style.display = 'block';
+
+      if (res.ok) {
+        resultEl.className = 'alert alert-success';
+        resultEl.textContent = '保存成功！';
+        setTimeout(() => window.location.href = '/admin/news', 1000);
+      } else {
+        const err = await res.json();
+        resultEl.className = 'alert alert-error';
+        resultEl.textContent = `保存失败: ${err.error}`;
+      }
+    });
+  </script>
+</AdminLayout>

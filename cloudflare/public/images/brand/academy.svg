@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 495 113" role="img" aria-label="人工智能学院">
+  <g fill="#0066cc">
+    <path d="M12 56 46 18l34 18v56H46V50L12 34Z"/>
+    <path d="M46 18 80 36 46 54 12 36Z" opacity=".6"/>
+  </g>
+  <g fill="#64748b">
+    <text x="100" y="58" font-family="-apple-system, 'PingFang SC', 'Noto Sans CJK SC', sans-serif" font-size="34" font-weight="700" letter-spacing="2">人工智能学院</text>
+    <text x="102" y="88" font-family="-apple-system, 'Helvetica Neue', Arial, sans-serif" font-size="13" letter-spacing="2.4">SCHOOL OF ARTIFICIAL INTELLIGENCE</text>
+  </g>
+</svg>

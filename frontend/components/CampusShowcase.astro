@@ -1,0 +1,89 @@
+---
+import { site } from "../lib/site";
+import { t } from "../lib/text-config";
+import Text from "./Text.astro";
+
+const slides = site.showcase;
+---
+
+<section class="campus-showcase surface" data-showcase aria-label={t("visuals.carouselLabel")} aria-roledescription={t("visuals.carouselRole")}>
+  <div class="showcase-track" data-showcase-track tabindex="0" aria-label={t("visuals.carouselLabel")}>
+    {slides.map((slide, index) => (
+      <figure class="showcase-slide" role="group" aria-label={t("visuals.position", { current: index + 1, total: slides.length })}>
+        <img src={slide.src} srcset={slide.srcSet} sizes="(min-width: 1024px) 560px, (min-width: 768px) calc(100vw - 64px), calc(100vw - 32px)" alt={slide.alt} width={slide.width} height={slide.height} loading={index === 0 ? "eager" : "lazy"} fetchpriority={index === 0 ? "high" : "auto"} decoding="async" />
+        <figcaption>
+          <span class="eyebrow"><Text k="visuals.carouselLabel" /></span>
+          <h2><Text value={slide.title} /></h2>
+          <p><Text value={slide.caption} /></p>
+          <a href={slide.href} class="showcase-link"><Text k="visuals.explore" /><span aria-hidden="true"> ↗</span></a>
+        </figcaption>
+      </figure>
+    ))}
+  </div>
+  <div class="showcase-controls" data-showcase-controls hidden>
+    <button type="button" data-previous aria-label={t("visuals.previous")}>←</button>
+    <div class="showcase-dots">
+      {slides.map((slide, index) => <button type="button" data-slide={index} aria-label={t("visuals.select", { number: index + 1, title: slide.title })} aria-current={index === 0 ? "true" : undefined}><span></span></button>)}
+    </div>
+    <p class="sr-only" data-showcase-status aria-live="polite" aria-atomic="true">{t("visuals.position", { current: 1, total: slides.length })}</p>
+    <button type="button" data-next aria-label={t("visuals.next")}>→</button>
+  </div>
+</section>
+
+<style>
+  .campus-showcase { min-width: 0; overflow: hidden; box-shadow: var(--shadow-lg); }
+  .showcase-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; }
+  .showcase-track:focus-visible { outline-offset: -3px; }
+  .showcase-slide { margin: 0; flex: 0 0 100%; min-width: 0; scroll-snap-align: start; scroll-snap-stop: always; }
+  .showcase-slide img { width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; display: block; background: var(--bg-elev); }
+  figcaption { padding: 1.25rem 1.5rem 1rem; }
+  h2 { margin: .7rem 0 .4rem; font-size: 1.2rem; font-weight: 700; color: var(--fg); }
+  p { margin: 0; min-height: 2.6em; color: var(--fg-muted); font-size: .75rem; line-height: 1.6; }
+  .showcase-link { display: inline-block; padding: .6rem 0; color: var(--accent); font-size: .8rem; font-weight: 600; }
+  .showcase-controls { display: flex; align-items: center; justify-content: space-between; padding: 0 1rem .65rem; }
+  button { border-radius: 50%; width: 44px; height: 44px; cursor: pointer; color: var(--accent); background: transparent; border: 1px solid var(--border); }
+  button:hover { background: var(--accent-soft); }
+  .showcase-dots { display: flex; }
+  .showcase-dots button { display: grid; place-items: center; border: 0; }
+  .showcase-dots span { width: 7px; height: 7px; border-radius: 50%; background: var(--border-strong); }
+  .showcase-dots [aria-current="true"] span { width: 22px; border-radius: 5px; background: var(--accent); }
+  .ready .showcase-track { scrollbar-width: none; }
+  .ready .showcase-track::-webkit-scrollbar { display: none; }
+</style>
+
+<script>
+  // Native scroll snapping also works without JavaScript. No autoplay avoids
+  // unexpected changes while reading and requires no pause/focus timers.
+  document.querySelectorAll<HTMLElement>("[data-showcase]").forEach((root) => {
+    const track = root.querySelector<HTMLElement>("[data-showcase-track]")!;
+    const slides = Array.from(track.querySelectorAll<HTMLElement>(".showcase-slide"));
+    const dots = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-slide]"));
+    const status = root.querySelector<HTMLElement>("[data-showcase-status]")!;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let current = 0;
+    let frame = 0;
+    function goTo(index: number) {
+      const next = (index + slides.length) % slides.length;
+      track.scrollTo({ left: next * track.clientWidth, behavior: reducedMotion.matches ? "instant" : "smooth" });
+    }
+    function update() {
+      frame = 0;
+      const index = Math.max(0, Math.min(slides.length - 1, Math.round(track.scrollLeft / track.clientWidth)));
+      if (current === index) return;
+      current = index;
+      dots.forEach((dot, i) => i === index ? dot.setAttribute("aria-current", "true") : dot.removeAttribute("aria-current"));
+      status.textContent = slides[index].getAttribute("aria-label");
+    }
+    track.addEventListener("scroll", () => { if (!frame) frame = requestAnimationFrame(update); }, { passive: true });
+    root.querySelector("[data-previous]")?.addEventListener("click", () => goTo(current - 1));
+    root.querySelector("[data-next]")?.addEventListener("click", () => goTo(current + 1));
+    dots.forEach((dot, i) => dot.addEventListener("click", () => goTo(i)));
+    track.addEventListener("keydown", (event) => {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      event.preventDefault();
+      goTo(current + (event.key === "ArrowRight" ? 1 : -1));
+    });
+    root.querySelector<HTMLElement>("[data-showcase-controls]")!.hidden = false;
+    root.classList.add("ready");
+  });
+</script>

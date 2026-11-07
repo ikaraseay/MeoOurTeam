@@ -1,0 +1,7 @@
+---
+import BlogListing from "../../components/BlogListing.astro";
+import { getPublishedPosts, paginatePosts } from "../../lib/posts";
+const all = await getPublishedPosts();
+const listing = paginatePosts(all, 1)!;
+---
+<BlogListing {...listing} totalCount={all.length} canonicalPath="/blog/" />

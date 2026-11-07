@@ -1,0 +1,71 @@
+---
+import { t } from "../lib/text-config";
+import Text from "./Text.astro";
+
+import SectionHeader from "./SectionHeader.astro";
+import { getNewsPosts } from "../lib/posts";
+import { formatDate } from "../lib/format";
+
+const posts = (await getNewsPosts()).slice(0, 4);
+---
+
+<section
+  id="blog"
+  class="px-4 md:px-8 section-space border-b bg-elev border-default"
+>
+  <div class="max-w-6xl mx-auto">
+    <SectionHeader
+      eyebrow={t("latestposts.eyebrow001")}
+      index="04"
+      title={t("latestposts.title002")}
+      description={t("latestposts.description003")}
+    >
+      <a
+        slot="aside"
+        href="/news/"
+        class="inline-flex items-center gap-1 text-sm font-medium transition-colors text-accent"
+      >
+        <span><Text k="latestposts.text004" /></span><span>》</span>
+      </a>
+    </SectionHeader>
+
+    {
+      posts.length === 0 ? (
+        <p class="mt-10 text-sm text-fg-muted"><Text k="news.empty" /></p>
+      ) : (
+        <ul class="mt-8 grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2">
+          {posts.map((post) => (
+            <li>
+              <a
+                href={`/blog/${post.id}/`}
+                data-reveal class="surface feature-card block p-6 h-full"
+              >
+                <div class="flex items-center gap-2 flex-wrap">
+                  {post.data.tags.map((t) => (
+                    <span class="font-mono text-xs text-accent">
+                      #{t}
+                    </span>
+                  ))}
+                </div>
+                <h3 class="font-bold tracking-tight text-lg md:text-xl mt-3 text-fg">
+                  {post.data.title}
+                </h3>
+                <p class="text-sm mt-2 leading-relaxed line-clamp-3 text-fg-muted">
+                  {post.data.description}
+                </p>
+                <div class="mt-4 flex items-center justify-between text-xs text-fg-subtle">
+                  <time datetime={post.data.pubDate.toISOString()}>
+                    <Text value={formatDate(post.data.pubDate)} />
+                  </time>
+                  <span class="font-medium text-accent">
+                    <Text k="latestposts.text006" />
+                  </span>
+                </div>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </div>
+</section>

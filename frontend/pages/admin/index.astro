@@ -1,0 +1,2244 @@
+---
+export const prerender = false
+
+import siteContentRaw from '../../../data/runtime/site-content.json'
+import { site } from '../../lib/site'
+
+const siteContentJson = JSON.stringify({
+  peopleGroups: siteContentRaw.peopleGroups ?? [],
+  researchDirections: siteContentRaw.researchDirections ?? [],
+  projects: siteContentRaw.projects ?? [],
+  publications: siteContentRaw.publications ?? [],
+  outcomeFiles: siteContentRaw.outcomeFiles ?? [],
+  introductionVideos: siteContentRaw.introductionVideos ?? [],
+  homepage: siteContentRaw.homepage ?? {
+    researchDirections: true,
+    researchHighlights: true,
+    latestNews: true,
+    joinTeam: true,
+  },
+}).replace(/</g, '\\u003c')
+---
+
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>后台管理 · {site.name}</title>
+  <link rel="stylesheet" href="/admin.css">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-elev: #f8f9fa;
+      --fg: #1a1a1a;
+      --fg-muted: #666666;
+      --fg-subtle: #999999;
+      --border: #e0e0e0;
+      --border-strong: #d0d0d0;
+      --accent: #0066cc;
+      --accent-fg: #ffffff;
+      --accent-soft: rgba(0, 102, 204, 0.1);
+      --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1a1a1a;
+        --bg-elev: #2a2a2a;
+        --fg: #ffffff;
+        --fg-muted: #aaaaaa;
+        --fg-subtle: #888888;
+        --border: #3a3a3a;
+        --border-strong: #4a4a4a;
+        --accent: #4d9fff;
+        --accent-fg: #000000;
+        --accent-soft: rgba(77, 159, 255, 0.15);
+      }
+    }
+    .header-actions { display: flex; gap: 0.5rem; align-items: center; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="/admin">
+        {site.name}
+        <small>内容管理系统</small>
+      </a>
+      <nav aria-label="主导航">
+        <button id="nav-posts" type="button">文章管理</button>
+        <button id="nav-media" type="button">素材库</button>
+        <button id="nav-texts" type="button">文案管理</button>
+        <button id="nav-site" type="button">站点资料</button>
+        <button id="nav-branding" type="button">品牌图标</button>
+        <button id="nav-releases" type="button">发布中心</button>
+        <a href="/" target="_blank" rel="noopener noreferrer">查看网站</a>
+      </nav>
+      <button id="logout" class="logout" type="button">退出登录</button>
+    </aside>
+
+    <main class="workspace">
+      <header class="workspace-header">
+        <div>
+          <p class="eyebrow">后台管理</p>
+          <h1 id="page-title">文章管理</h1>
+        </div>
+        <div class="header-actions">
+          <button id="copy-new" type="button" hidden>新增文案</button>
+          <button id="release-refresh" class="secondary" type="button" hidden>刷新状态</button>
+          <button id="new-post" type="button">新建文章</button>
+        </div>
+      </header>
+
+      <div id="notice" role="status" aria-live="polite"></div>
+
+      <section id="post-list-view">
+        <div class="admin-help"><p>在这里撰写和发布实验室新闻与动态。保存后的内容会进入草稿，发布后才会出现在公开网站。</p></div>
+        <div class="toolbar">
+          <input id="search-posts" type="search" placeholder="搜索标题、摘要" aria-label="搜索文章">
+          <select id="filter-status" aria-label="按状态筛选">
+            <option value="all">全部状态</option>
+            <option value="published">已发布</option>
+            <option value="draft">草稿</option>
+          </select>
+        </div>
+        <div id="post-list" class="list-panel"></div>
+      </section>
+
+      <section id="editor-view" hidden>
+        <div class="editor-actions">
+          <button id="back-list" class="secondary" type="button">← 返回列表</button>
+          <span id="editor-state" class="status"></span>
+          <div class="action-spacer"></div>
+          <button id="unpublish" class="danger-outline" type="button">撤回发布</button>
+          <button id="delete-post" class="danger-outline" type="button">删除</button>
+          <button id="save-draft" type="button">保存草稿</button>
+          <button id="publish" type="button">发布</button>
+        </div>
+        <form id="post-form" class="editor-grid">
+          <div class="editor-main">
+            <label for="title">标题</label>
+            <input id="title" name="title" required maxlength="140">
+            <label for="summary">摘要</label>
+            <textarea id="summary" name="summary" rows="3" maxlength="300"></textarea>
+            <div class="body-heading">
+              <label for="body">Markdown 正文</label>
+              <button id="preview" class="text-button" type="button">预览正文</button>
+            </div>
+            <textarea id="body" name="body" rows="22" spellcheck="false"></textarea>
+            <div id="preview-panel" class="preview-panel" hidden></div>
+          </div>
+          <div class="editor-meta">
+            <h2>文章设置</h2>
+            <label for="pubDate">发布日期</label>
+            <input id="pubDate" name="pubDate" type="date">
+            <label for="category">分类</label>
+            <input id="category" name="category" maxlength="60" placeholder="新闻动态 / 学术公告">
+            <label for="tags">标签</label>
+            <input id="tags" name="tags" placeholder="用英文逗号分隔">
+            <p class="field-help">标签用于公开站点的分类与检索。</p>
+            <p id="public-link" class="field-help"></p>
+          </div>
+        </form>
+      </section>
+
+      <section id="media-view" hidden>
+        <div class="media-top">
+          <div>
+            <h2>素材库</h2>
+            <p class="muted">统一上传图片、PDF 和 MP4；站点资料编辑时可从素材库搜索并填入地址。</p>
+          </div>
+          <label class="upload-button">上传素材<input id="media-input" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,video/mp4" hidden></label>
+        </div>
+        <div class="toolbar">
+          <input id="search-media" type="search" placeholder="搜索素材名称或地址" aria-label="搜索素材">
+          <select id="filter-media-type" aria-label="按素材类型筛选">
+            <option value="all">全部类型</option>
+            <option value="image">图片</option>
+            <option value="pdf">PDF</option>
+            <option value="mp4">视频</option>
+          </select>
+        </div>
+        <div id="media-list" class="media-grid"></div>
+      </section>
+
+      <section id="site-view" hidden>
+        <div class="admin-help"><p>维护人员、研究方向、项目、论文与素材信息。先保存草稿，再由管理员发布。</p></div>
+        <div class="site-workflow">
+          <div class="site-tabs" role="tablist" aria-label="站点资料栏目">
+            <button class="nav-active" data-site-tab="people" type="button">团队成员</button>
+            <button data-site-tab="research" type="button">研究方向</button>
+            <button data-site-tab="projects" type="button">科研项目</button>
+            <button data-site-tab="homepage" type="button">首页展示</button>
+            <button data-site-tab="publications" type="button">论文</button>
+            <button data-site-tab="videos" type="button">介绍视频</button>
+            <button data-site-tab="outcomes" type="button">成果 PDF</button>
+          </div>
+          <div class="site-actions">
+            <button id="save-site" type="button">保存草稿</button>
+            <button id="publish-site" type="button">发布已保存草稿</button>
+          </div>
+        </div>
+        <div class="site-toolbar">
+          <input id="site-search" type="search" placeholder="搜索当前栏目" aria-label="搜索站点资料">
+          <select id="site-group-filter" aria-label="按成员分组筛选"></select>
+          <button id="site-add" class="secondary" type="button">新增</button>
+          <button id="site-reload" class="secondary" type="button">重新加载</button>
+        </div>
+        <div class="site-manager">
+          <aside class="site-list-panel">
+            <div id="site-list" class="site-list"></div>
+          </aside>
+          <section class="site-detail-panel">
+            <div id="site-empty" class="empty-state">请选择左侧条目，或点击“新增”。</div>
+            <form id="site-detail-form" hidden></form>
+          </section>
+        </div>
+
+        <div id="media-picker" class="media-picker" hidden>
+          <div class="media-picker-card">
+            <div class="media-picker-head">
+              <div>
+                <h2>选择素材</h2>
+                <p class="muted">点击素材即可填入当前文件地址字段。</p>
+              </div>
+              <button id="close-media-picker" class="secondary" type="button">关闭</button>
+            </div>
+            <div class="toolbar">
+              <input id="media-picker-search" type="search" placeholder="搜索可选素材" aria-label="搜索可选素材">
+              <select id="media-picker-type" aria-label="素材类型">
+                <option value="all">全部</option>
+                <option value="image">图片</option>
+                <option value="pdf">PDF</option>
+                <option value="mp4">视频</option>
+              </select>
+            </div>
+            <div id="media-picker-list" class="media-grid"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="texts-view" hidden>
+        <div class="editor-actions">
+          <button id="copy-publish" type="button">发布已保存草稿</button>
+          <button id="copy-release-link" class="secondary" type="button">发布中心</button>
+        </div>
+        <p id="copy-notice" role="status" aria-live="polite"></p>
+        <p id="copy-mode" class="field-help"></p>
+        <div class="admin-help"><p>在这里维护文案草稿。保存后由管理员发布，构建成功后网站才会更新。</p></div>
+        <div class="site-toolbar">
+          <input id="copy-search" type="search" placeholder="搜索 key、文案内容或页面位置" aria-label="搜索 key、文案内容或页面位置">
+          <select id="copy-module" aria-label="全部模块">
+            <option value="">全部模块</option>
+          </select>
+          <button id="copy-reload" class="secondary" type="button">重新加载</button>
+        </div>
+        <div class="copy-preview-bar">
+          <label for="copy-preview-page">预览页面</label>
+          <select id="copy-preview-page" aria-label="选择预览页面"></select>
+          <span id="copy-preview-count" class="field-help" aria-live="polite"></span>
+          <button id="copy-preview-max" class="secondary" type="button">放大预览</button>
+          <button id="copy-preview-reset" class="secondary" type="button">重置大小</button>
+          <button id="copy-preview-toggle" class="secondary" type="button">隐藏预览</button>
+        </div>
+        <div class="site-manager copy-manager copy-manager-visual">
+          <section class="site-list-panel copy-list-panel" aria-label="文案管理">
+            <p id="copy-results" class="field-help copy-list-heading" aria-live="polite"></p>
+            <div id="copy-list" class="site-list copy-list"></div>
+            <div id="copy-pagination" class="editor-actions copy-pagination"></div>
+          </section>
+          <section class="site-detail-panel copy-detail-panel">
+            <div id="copy-empty" class="empty-state">请选择左侧条目，或点击“新增”。</div>
+            <form id="copy-form" class="copy-form" hidden>
+              <div class="detail-heading"><h2 id="copy-heading">新增文案</h2></div>
+              <label for="copy-key">文案 key</label>
+              <input id="copy-key" required maxlength="100" pattern="[a-z][a-z0-9]*([._-][a-zA-Z0-9]+)+" autocomplete="off" spellcheck="false">
+              <p class="field-help">例如 public.welcome（前台可读）；admin 开头的模块仅后台使用。</p>
+              <div id="copy-locations" class="copy-locations" hidden></div>
+              <label for="copy-value">文案内容</label>
+              <textarea id="copy-value" required maxlength="4000" rows="7"></textarea>
+              <p class="field-help">请保留原文全部 &#123;占位符&#125;，不要新增或删除。</p>
+              <details id="copy-default"><summary>默认文案</summary><pre id="copy-default-value"></pre></details>
+              <div class="editor-actions">
+                <button type="submit">保存草稿</button>
+                <button id="copy-locate" class="secondary" type="button" hidden>在预览中定位</button>
+                <button id="copy-cancel" class="secondary" type="button">取消编辑</button>
+                <button id="copy-delete" class="danger-outline" type="button">删除文案</button>
+              </div>
+              <p class="field-help">草稿不会影响线上文案。请核对修改，再点击“发布已保存草稿”。</p>
+            </form>
+          </section>
+          <section id="copy-preview-panel" class="copy-preview-panel" aria-label="页面预览">
+            <div id="copy-preview-resizer" class="copy-preview-resizer" role="separator" aria-orientation="vertical" aria-label="拖动调整预览宽度" tabindex="0"></div>
+            <div class="copy-preview-head">
+              <strong>页面预览</strong>
+              <span class="field-help">蓝色虚线为可编辑文案，绿色下划线表示未发布草稿</span>
+            </div>
+            <iframe id="copy-preview-frame" title="网站页面预览"></iframe>
+            <div id="copy-preview-attrs" class="copy-preview-attrs"></div>
+          </section>
+        </div>
+        <details class="site-panel copy-audit">
+          <summary>最近 100 条修改记录</summary>
+          <div id="copy-audit-list"></div>
+        </details>
+      </section>
+
+      <section id="branding-view" hidden>
+        <div class="admin-help"><p>自定义浏览器图标、导航 Logo、页脚标识和分享图。保存后需发布构建，图标才会写入线上页面；留空则使用默认占位图标。</p></div>
+        <div class="site-manager branding-manager">
+          <form id="branding-form" class="site-panel branding-form"></form>
+          <aside class="site-panel branding-preview" aria-label="图标预览">
+            <h2>预览</h2>
+            <div id="branding-preview-list" class="branding-preview-list"></div>
+          </aside>
+        </div>
+        <div class="editor-actions">
+          <button id="save-branding" type="button">保存图标设置</button>
+          <button id="publish-branding" class="secondary" type="button">发布已保存设置</button>
+        </div>
+        <p class="field-help">发布构建会使用已保存的图标设置重新生成页面；草稿修改不会立即影响线上。</p>
+      </section>
+
+      <section id="releases-view" hidden>
+        <section class="site-panel">
+          <p>当前版本：<code id="release-current">—</code></p>
+          <p>上一版本：<code id="release-previous">—</code></p>
+          <div class="editor-actions">
+            <button id="release-rollback" class="danger-outline" type="button">回滚到上一版本</button>
+            <button id="release-rebuild" class="secondary" type="button">重新构建当前已发布内容</button>
+          </div>
+          <p class="field-help">程序或挂载配置更新后，可在这里重新构建已发布内容；其他模块草稿不会一并发布。</p>
+          <p id="release-mode" class="field-help"></p>
+        </section>
+        <p id="release-status" role="status"></p>
+        <div id="release-jobs" class="list-panel"></div>
+        <section class="site-panel">
+          <h2>构建日志</h2>
+          <pre id="release-log" class="release-log">暂时没有构建输出。</pre>
+        </section>
+        <details class="site-panel">
+          <summary>版本切换记录</summary>
+          <div id="release-history"></div>
+        </details>
+      </section>
+    </main>
+  </div>
+
+  <script id="site-data" type="application/json" set:html={siteContentJson} />
+
+  <script is:inline>
+    const byId = (id) => document.getElementById(id);
+    const embeddedContent = JSON.parse(byId('site-data').textContent);
+    const PREVIEW_SIZE_KEY = 'ourteam.admin.previewSize';
+    const savedPreviewSize = (() => {
+      try { return JSON.parse(localStorage.getItem(PREVIEW_SIZE_KEY) || '{}'); } catch { return {}; }
+    })();
+
+    const state = {
+      posts: [], media: [], current: null, dirty: false, busy: false,
+      view: 'posts', releases: [], releaseSelected: null, releasePrevious: null, releaseCurrent: null,
+      siteContent: structuredClone(embeddedContent), siteTab: 'people', siteSelection: null, activeMediaTarget: null,
+      texts: [], textSelected: null, textDirty: false, textPage: 0, canBuild: false,
+      textLocations: { pages: [], byKey: new Map() }, textLocationsReady: false,
+      textPreviewRoute: '', textPreviewOpen: true, textPreviewScrollTo: null,
+      textPreviewWidth: Number(savedPreviewSize.width) || 0, textPreviewMax: Boolean(savedPreviewSize.max),
+      identity: null, identityDirty: false,
+    };
+
+    const homeSections = [
+      ['researchDirections', '研究方向入口'],
+      ['researchHighlights', '从研究论文到实验演示'],
+      ['latestNews', '最新新闻与学术公告'],
+      ['joinTeam', '一起探索人工智能的可能'],
+    ];
+
+    const tabs = {
+      research: { label: '研究方向', addLabel: '新增研究方向', path: 'researchDirections' },
+      projects: { label: '科研项目', addLabel: '新增项目', path: 'projects' },
+      homepage: { label: '首页展示', addLabel: '', path: 'homepage' },
+      people: { label: '成员', addLabel: '新增成员', path: 'peopleGroups' },
+      publications: { label: '论文', addLabel: '新增论文', path: 'publications' },
+      videos: { label: '介绍视频', addLabel: '新增视频', path: 'introductionVideos' },
+      outcomes: { label: '成果 PDF', addLabel: '新增成果 PDF', path: 'outcomeFiles' },
+    };
+
+    const highlightOptions = [
+      ['cas-q1', '中科院一区'],
+      ['ccf-a', 'CCF A 类'],
+      ['highly-cited', '高被引'],
+      ['hot', '热点'],
+    ];
+
+    const releaseStatusLabels = {
+      activated: '已发布',
+      success: '构建成功',
+      building: '构建中',
+      failed: '发布失败',
+      interrupted: '任务中断',
+      queued: '等待执行',
+    };
+
+    const textModuleLabels = {
+      home: '首页',
+      site: '全站信息',
+      research: '研究方向',
+      researchmaterials: '科研项目资料',
+      members: '团队成员',
+      contact: '联系与招生',
+      outcomes: '科研成果',
+      bloglisting: '博客列表',
+      blogsearch: '博客搜索',
+      postlist: '文章卡片',
+      latestposts: '最新动态',
+      navbar: '导航',
+      pagination: '分页',
+      article: '文章详情',
+      news: '新闻动态',
+      projects: '科研项目',
+      publications: '论文',
+      release: '发布',
+      catalog: '目录',
+      identity: '站点标识',
+      resources: '资源',
+      visuals: '视觉素材',
+      admin: '后台界面',
+      errors: '错误提示',
+      login: '登录',
+      copy: '文案管理',
+      academy: '依托学院',
+      awards: '成果展示',
+      hero: '首页旧版组件',
+      common: '公共文案',
+    };
+
+    const textModuleLabel = (module) => textModuleLabels[module] || module;
+
+    async function api(path, method = 'GET', payload) {
+      const response = await fetch(`/api/admin/${path}`, {
+        method,
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: method === 'GET' ? {} : { 'Content-Type': 'application/json' },
+        body: method === 'GET' ? undefined : JSON.stringify(payload ?? {}),
+      });
+      const text = await response.text();
+      let result = {};
+      try { result = text ? JSON.parse(text) : {}; } catch { result = {}; }
+      if (response.status === 401) { location.assign('/admin/login'); throw new Error('登录已过期'); }
+      if (!response.ok) throw new Error(result.error || '请求失败');
+      return result;
+    }
+
+    function notice(message, error = false) {
+      const el = byId('notice');
+      el.textContent = message;
+      el.style.color = error ? 'var(--fg-muted)' : 'var(--accent)';
+    }
+
+    function updateActions() {
+      const view = state.view;
+      byId('new-post').hidden = view === 'media' || view === 'site' || view === 'branding' || view === 'releases' || view === 'texts';
+      byId('copy-new').hidden = view !== 'texts';
+      byId('release-refresh').hidden = view !== 'releases';
+      if (view === 'releases') {
+        const busy = state.releases.some((release) => release.status === 'building');
+        byId('release-rollback').disabled = busy || !state.releasePrevious;
+        byId('release-rebuild').disabled = busy;
+      }
+    }
+
+    async function run(action) {
+      if (state.busy) return;
+      state.busy = true;
+      document.querySelectorAll('.workspace button').forEach((button) => { button.disabled = true; });
+      try { await action(); }
+      catch (error) { notice(error.message, true); }
+      finally {
+        state.busy = false;
+        document.querySelectorAll('.workspace button').forEach((button) => { button.disabled = false; });
+        updateActions();
+      }
+    }
+
+    function confirmLeave() {
+      if (!(state.dirty || state.textDirty || state.identityDirty)) return true;
+      if (!confirm('当前有未保存的修改，确定离开吗？')) return false;
+      state.dirty = false;
+      state.textDirty = false;
+      state.identityDirty = false;
+      return true;
+    }
+
+    function setView(view) {
+      state.view = view;
+      byId('post-list-view').hidden = view !== 'posts';
+      byId('editor-view').hidden = view !== 'editor';
+      byId('media-view').hidden = view !== 'media';
+      byId('texts-view').hidden = view !== 'texts';
+      byId('site-view').hidden = view !== 'site';
+      byId('branding-view').hidden = view !== 'branding';
+      byId('releases-view').hidden = view !== 'releases';
+      byId('page-title').textContent = view === 'media' ? '素材库'
+        : view === 'texts' ? '文案管理'
+        : view === 'site' ? '站点资料'
+        : view === 'branding' ? '品牌图标'
+        : view === 'editor' ? '编辑文章'
+        : view === 'releases' ? '发布中心'
+        : '文章管理';
+      byId('nav-posts').classList.toggle('nav-active', view === 'posts' || view === 'editor');
+      byId('nav-media').classList.toggle('nav-active', view === 'media');
+      byId('nav-texts').classList.toggle('nav-active', view === 'texts');
+      byId('nav-site').classList.toggle('nav-active', view === 'site');
+      byId('nav-branding').classList.toggle('nav-active', view === 'branding');
+      byId('nav-releases').classList.toggle('nav-active', view === 'releases');
+      updateActions();
+    }
+
+    /* ---------------- 文章 ---------------- */
+
+    function statusOf(post) {
+      return post.status === 'published' ? ['已发布', 'published'] : ['草稿', 'draft'];
+    }
+
+    function renderPosts() {
+      const root = byId('post-list');
+      root.replaceChildren();
+      const query = byId('search-posts').value.trim().toLowerCase();
+      const filter = byId('filter-status').value;
+      const posts = state.posts.filter((post) => {
+        const [, status] = statusOf(post);
+        return (filter === 'all' || filter === status) && (!query || `${post.title} ${post.summary}`.toLowerCase().includes(query));
+      });
+      if (!posts.length) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state';
+        empty.textContent = state.posts.length ? '没有符合条件的文章。' : '还没有文章，点击“新建文章”开始。';
+        root.append(empty);
+        return;
+      }
+      for (const post of posts) {
+        const row = document.createElement('div');
+        row.className = 'post-row';
+        const left = document.createElement('div');
+        const open = document.createElement('button');
+        open.type = 'button';
+        open.textContent = post.title;
+        open.addEventListener('click', () => run(async () => { if (confirmLeave()) openPost(post.id); }));
+        const meta = document.createElement('p');
+        meta.textContent = `${post.pub_date || '未设置日期'} · ${post.category || '未分类'}`;
+        const badge = document.createElement('span');
+        const [label, status] = statusOf(post);
+        badge.className = `status ${status}`;
+        badge.textContent = label;
+        left.append(open, meta);
+        row.append(left, badge);
+        root.append(row);
+      }
+    }
+
+    async function refreshPosts() {
+      const result = await api('news');
+      state.posts = result.news || [];
+      renderPosts();
+    }
+
+    function fillEditor(post) {
+      state.current = post;
+      byId('title').value = post.title || '';
+      byId('summary').value = post.summary || '';
+      byId('body').value = post.content || '';
+      byId('pubDate').value = (post.pub_date || '').slice(0, 10);
+      byId('category').value = post.category || '';
+      let tags = [];
+      try { tags = JSON.parse(post.tags || '[]'); } catch { tags = []; }
+      byId('tags').value = tags.join(', ');
+      const [label, status] = statusOf(post);
+      byId('editor-state').textContent = label;
+      byId('editor-state').className = `status ${status}`;
+      byId('unpublish').hidden = post.status !== 'published';
+      byId('preview-panel').hidden = true;
+      byId('preview-panel').replaceChildren();
+      state.dirty = false;
+      setView('editor');
+    }
+
+    function openPost(id) {
+      const post = state.posts.find((item) => item.id === id);
+      if (post) fillEditor(post);
+      notice('');
+    }
+
+    function newPost() {
+      if (!confirmLeave()) return;
+      fillEditor({ id: null, title: '', summary: '', content: '', pub_date: new Date().toISOString().slice(0, 10), category: '', tags: '[]', status: 'draft' });
+      byId('title').focus();
+      notice('新文章尚未保存。');
+    }
+
+    function payload() {
+      const form = byId('post-form');
+      if (!form.reportValidity()) throw new Error('请填写所有必填字段。');
+      return {
+        title: byId('title').value,
+        summary: byId('summary').value,
+        content: byId('body').value,
+        pub_date: byId('pubDate').value || null,
+        category: byId('category').value,
+        tags: JSON.stringify(byId('tags').value.split(',').map((tag) => tag.trim()).filter(Boolean)),
+      };
+    }
+
+    async function saveCurrent(status) {
+      const data = { ...payload(), ...(status ? { status } : {}) };
+      let id = state.current?.id;
+      if (id) {
+        await api(`news/${id}`, 'PUT', data);
+      } else {
+        const result = await api('news', 'POST', data);
+        id = result.id;
+      }
+      await refreshPosts();
+      const saved = state.posts.find((item) => item.id === id);
+      if (saved) fillEditor(saved);
+      notice(status === 'published' ? '已发布。' : '草稿已保存。');
+      return saved;
+    }
+
+    /* ---------------- 素材 ---------------- */
+
+    function mediaKind(item) {
+      const mime = item.mime || '';
+      if (mime.startsWith('image/')) return 'image';
+      if (mime === 'application/pdf') return 'pdf';
+      if (mime.startsWith('video/')) return 'mp4';
+      return 'other';
+    }
+
+    function mediaUrl(item) {
+      return `/media/${item.key}`;
+    }
+
+    function mediaMatches(item, query, type) {
+      const kind = mediaKind(item);
+      const haystack = `${item.filename} ${mediaUrl(item)} ${kind}`.toLowerCase();
+      return (type === 'all' || type === kind) && (!query || haystack.includes(query));
+    }
+
+    function mediaPreview(item) {
+      const kind = mediaKind(item);
+      if (kind === 'image') {
+        const img = document.createElement('img');
+        img.src = mediaUrl(item);
+        img.alt = item.alt || item.filename || '素材';
+        img.loading = 'lazy';
+        return img;
+      }
+      if (kind === 'mp4') {
+        const video = document.createElement('video');
+        video.src = mediaUrl(item);
+        video.controls = true;
+        video.preload = 'metadata';
+        return video;
+      }
+      const link = document.createElement('a');
+      link.href = mediaUrl(item);
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.className = 'file-preview';
+      link.textContent = kind === 'pdf' ? 'PDF' : 'FILE';
+      return link;
+    }
+
+    async function fetchMedia() {
+      const result = await api('media');
+      state.media = result.media || [];
+    }
+
+    function renderMedia() {
+      const query = byId('search-media')?.value.trim().toLowerCase() ?? '';
+      const type = byId('filter-media-type')?.value ?? 'all';
+      const root = byId('media-list');
+      root.replaceChildren();
+      const media = state.media.filter((item) => mediaMatches(item, query, type));
+      if (!media.length) {
+        const empty = document.createElement('p');
+        empty.className = 'empty-state';
+        empty.textContent = state.media.length ? '没有符合条件的素材。' : '还没有素材。';
+        root.append(empty);
+        return;
+      }
+      for (const item of media) {
+        const card = document.createElement('div');
+        card.className = 'media-card';
+        const actions = document.createElement('div');
+        actions.className = 'media-card-actions';
+        const copyUrl = document.createElement('button');
+        copyUrl.type = 'button';
+        copyUrl.className = 'secondary';
+        copyUrl.textContent = '复制地址';
+        copyUrl.addEventListener('click', () => run(async () => { await navigator.clipboard.writeText(mediaUrl(item)); notice('素材地址已复制。'); }));
+        const copy = document.createElement('button');
+        copy.type = 'button';
+        copy.className = 'secondary';
+        copy.textContent = '复制 Markdown';
+        copy.addEventListener('click', () => run(async () => {
+          const kind = mediaKind(item);
+          const url = mediaUrl(item);
+          const markdown = kind === 'mp4' ? `[查看视频](${url})` : kind === 'pdf' ? `[查看论文 PDF](${url})` : `![图片描述](${url})`;
+          await navigator.clipboard.writeText(markdown);
+          notice('素材 Markdown 已复制。');
+        }));
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'danger-outline';
+        remove.textContent = '删除';
+        remove.addEventListener('click', () => run(async () => {
+          if (!confirm('删除素材后，引用它的文章或站点资料会出现失效链接。确定继续吗？')) return;
+          await api(`media/${item.id}`, 'DELETE');
+          await fetchMedia();
+          renderMedia();
+          notice('素材已删除。');
+        }));
+        actions.append(copyUrl, copy, remove);
+        card.append(mediaPreview(item), actions);
+        root.append(card);
+      }
+    }
+
+    async function loadMedia() {
+      await fetchMedia();
+      renderMedia();
+    }
+
+    /* ---------------- 站点资料 ---------------- */
+
+    function field(label, name, value, options = {}) {
+      const wrap = document.createElement('label');
+      wrap.textContent = label;
+      const row = document.createElement(options.file ? 'div' : 'span');
+      if (options.file) row.className = 'file-field';
+      const control = options.multiline ? document.createElement('textarea') : document.createElement('input');
+      control.name = name;
+      control.value = value ?? '';
+      if (options.type) control.type = options.type;
+      if (options.min !== undefined) control.min = options.min;
+      if (options.max !== undefined) control.max = options.max;
+      if (options.required) control.required = true;
+      if (options.maxLength) control.maxLength = options.maxLength;
+      if (options.placeholder) control.placeholder = options.placeholder;
+      if (options.multiline) control.rows = options.rows ?? 3;
+      control.addEventListener('input', options.onInput ?? (() => { state.dirty = true; }));
+      if (options.file) {
+        const pick = document.createElement('button');
+        pick.type = 'button';
+        pick.className = 'secondary';
+        pick.textContent = '选择素材';
+        pick.addEventListener('click', () => openMediaPicker(control, options.mediaType ?? 'all'));
+        row.append(control, pick);
+        wrap.append(row);
+      } else {
+        wrap.append(control);
+      }
+      return wrap;
+    }
+
+    function selectField(label, name, value, options) {
+      const wrap = document.createElement('label');
+      wrap.textContent = label;
+      const select = document.createElement('select');
+      select.name = name;
+      for (const [key, text] of options) {
+        const option = document.createElement('option');
+        option.value = key;
+        option.textContent = text;
+        select.append(option);
+      }
+      select.value = value;
+      select.addEventListener('change', () => { state.dirty = true; });
+      wrap.append(select);
+      return wrap;
+    }
+
+    function fieldHelp(text) {
+      const note = document.createElement('p');
+      note.className = 'field-help';
+      note.textContent = text;
+      return note;
+    }
+
+    function highlightFields(values = []) {
+      const set = document.createElement('fieldset');
+      set.className = 'publication-options';
+      const legend = document.createElement('legend');
+      legend.textContent = '重点分类（仅选择已核实的标签）';
+      set.append(legend);
+      for (const [value, text] of highlightOptions) {
+        const label = document.createElement('label');
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.name = 'highlights';
+        checkbox.value = value;
+        checkbox.checked = (values || []).includes(value);
+        checkbox.addEventListener('change', () => { state.dirty = true; });
+        const span = document.createElement('span');
+        span.textContent = text;
+        label.append(checkbox, span);
+        set.append(label);
+      }
+      return set;
+    }
+
+    function getTabItems(tab = state.siteTab) {
+      if (!state.siteContent) return [];
+      if (tab === 'homepage') return [{ index: 0, item: state.siteContent.homepage ?? {} }];
+      if (tab === 'people') {
+        const items = [];
+        state.siteContent.peopleGroups.forEach((group, groupIndex) => {
+          (group.people ?? []).forEach((person, personIndex) => items.push({ group, groupIndex, person, personIndex }));
+        });
+        return items;
+      }
+      return (state.siteContent[tabs[tab].path] || []).map((item, index) => ({ item, index }));
+    }
+
+    function selectionKey(selection = state.siteSelection) {
+      if (!selection) return '';
+      if (selection.tab === 'people') return `people:${selection.id}`;
+      return `${selection.tab}:${selection.index}`;
+    }
+
+    function itemText(entry, tab = state.siteTab) {
+      if (tab === 'people') {
+        return `${entry.group.title} ${entry.person.name} ${entry.person.role} ${entry.person.focus ?? ''} ${entry.person.email ?? ''} ${entry.person.bio ?? ''}`;
+      }
+      const item = entry.item;
+      const visibility = ['publications', 'outcomes'].includes(tab) ? (item.visible ? '公开显示' : '后台保留，前台隐藏') : '';
+      return `${visibility} ${item.content ?? ''} ${item.advantage ?? ''} ${item.scene ?? ''} ${item.imageCaption ?? ''} ${item.startYear ?? ''} ${item.source ?? ''} ${(item.keywords ?? []).join(' ')} ${item.year ?? ''} ${item.title ?? ''} ${item.venue ?? ''} ${item.area ?? ''} ${item.focus ?? ''} ${item.level ?? ''} ${item.file ?? ''} ${item.authors ?? ''} ${item.citation ?? ''} ${(item.highlights ?? []).join(' ')}`;
+    }
+
+    function populateGroupFilter() {
+      const select = byId('site-group-filter');
+      const selected = select.value;
+      select.replaceChildren();
+      if (state.siteTab !== 'people') { select.hidden = true; return; }
+      select.hidden = false;
+      const all = document.createElement('option');
+      all.value = 'all';
+      all.textContent = '全部分组';
+      select.append(all);
+      state.siteContent.peopleGroups.forEach((group, index) => {
+        const option = document.createElement('option');
+        option.value = String(index);
+        option.textContent = group.title;
+        select.append(option);
+      });
+      if ([...select.options].some((option) => option.value === selected)) select.value = selected;
+    }
+
+    function personKey(person) {
+      if (!person.id) person.id = `member-${crypto.randomUUID()}`;
+      return person.id;
+    }
+
+    function renderSiteList() {
+      const root = byId('site-list');
+      root.replaceChildren();
+      populateGroupFilter();
+      const query = byId('site-search').value.trim().toLowerCase();
+      const groupFilter = byId('site-group-filter').value;
+      const entries = getTabItems().filter((entry) => {
+        if (state.siteTab === 'people' && groupFilter !== 'all' && String(entry.groupIndex) !== groupFilter) return false;
+        return !query || itemText(entry).toLowerCase().includes(query);
+      });
+      if (!entries.length) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state';
+        empty.textContent = '没有符合条件的条目。';
+        root.append(empty);
+        return;
+      }
+      const currentKey = selectionKey();
+      for (const entry of entries) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'site-list-item';
+        if (state.siteTab === 'people') {
+          button.dataset.key = `people:${personKey(entry.person)}`;
+          button.draggable = !query;
+          button.addEventListener('dragstart', (event) => { event.dataTransfer.setData('text/plain', personKey(entry.person)); });
+          button.addEventListener('dragover', (event) => { if (!query) { event.preventDefault(); button.dataset.dragOver = ''; } });
+          button.addEventListener('dragleave', () => delete button.dataset.dragOver);
+          button.addEventListener('drop', (event) => {
+            event.preventDefault();
+            delete button.dataset.dragOver;
+            if (!query) movePerson(event.dataTransfer.getData('text/plain'), personKey(entry.person));
+          });
+          button.innerHTML = '<strong></strong><span></span><small></small>';
+          button.querySelector('strong').textContent = entry.person.name;
+          button.querySelector('span').textContent = entry.person.role;
+          button.querySelector('small').textContent = entry.group.title;
+        } else {
+          button.dataset.key = `${state.siteTab}:${entry.index}`;
+          button.innerHTML = '<strong></strong><span></span><small></small>';
+          button.querySelector('strong').textContent = entry.item.title;
+          button.querySelector('span').textContent = entry.item.content || entry.item.source || entry.item.venue || entry.item.focus || entry.item.level || entry.item.file || '';
+          const visibility = ['publications', 'outcomes'].includes(state.siteTab) ? (entry.item.visible ? '公开显示' : '后台保留，前台隐藏') : '';
+          button.querySelector('small').textContent = [visibility, entry.item.startYear ?? entry.item.year, entry.item.area, ...(entry.item.keywords ?? [])].filter(Boolean).join(' · ') || entry.item.file || '';
+        }
+        button.classList.toggle('active', button.dataset.key === currentKey);
+        button.addEventListener('click', () => {
+          applySiteDetail();
+          state.siteSelection = state.siteTab === 'people'
+            ? { tab: 'people', id: personKey(entry.person), ...personLocation(personKey(entry.person)) }
+            : { tab: state.siteTab, index: entry.index };
+          renderSiteList();
+          renderSiteDetail();
+        });
+        root.append(button);
+      }
+    }
+
+    function personLocation(id) {
+      for (const [groupIndex, group] of state.siteContent.peopleGroups.entries()) {
+        const personIndex = (group.people ?? []).findIndex((person) => personKey(person) === id);
+        if (personIndex >= 0) return { groupIndex, personIndex };
+      }
+      return {};
+    }
+
+    function movePerson(id, destination) {
+      applySiteDetail();
+      const source = personLocation(id);
+      if (source.groupIndex === undefined) return;
+      const group = state.siteContent.peopleGroups[source.groupIndex];
+      const index = source.personIndex;
+      const target = personLocation(destination);
+      if (target.groupIndex !== undefined && target.groupIndex !== source.groupIndex) {
+        notice('可上移、下移或拖动调整组内顺序；跨组移动请选择分组和位置。', true);
+        return;
+      }
+      const position = { up: index - 1, down: index + 1, first: 0, last: group.people.length - 1 }[destination] ?? target.personIndex;
+      if (position === undefined || position === index || position < 0 || position >= group.people.length) return;
+      const [person] = group.people.splice(index, 1);
+      group.people.splice(position, 0, person);
+      state.siteSelection = { tab: 'people', id, ...personLocation(id) };
+      state.dirty = true;
+      renderSiteList();
+      renderSiteDetail();
+      notice('人员位置已调整，请保存草稿。');
+    }
+
+    function selectedEntry() {
+      const sel = state.siteSelection;
+      if (!sel || sel.tab !== state.siteTab) return null;
+      if (sel.tab === 'homepage') return { item: state.siteContent.homepage ?? {} };
+      if (sel.tab === 'people') {
+        Object.assign(sel, personLocation(sel.id));
+        const group = state.siteContent.peopleGroups[sel.groupIndex];
+        const person = group?.people?.[sel.personIndex];
+        return group && person ? { group, person } : null;
+      }
+      const item = (state.siteContent[tabs[sel.tab].path] || [])[sel.index];
+      return item ? { item } : null;
+    }
+
+    function renderSiteDetail() {
+      const entry = selectedEntry();
+      const empty = byId('site-empty');
+      const form = byId('site-detail-form');
+      form.replaceChildren();
+      form.hidden = !entry;
+      empty.hidden = Boolean(entry);
+      if (!entry) return;
+
+      const heading = document.createElement('div');
+      heading.className = 'detail-heading';
+      const title = document.createElement('h2');
+      title.textContent = state.siteTab === 'people' ? '编辑成员' : `编辑${tabs[state.siteTab].label}`;
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'danger-outline';
+      remove.textContent = '删除当前条目';
+      remove.addEventListener('click', () => {
+        if (!confirm('确定删除当前条目吗？保存发布后才会影响前台。')) return;
+        deleteSelectedSiteItem();
+      });
+      heading.append(title);
+      if (state.siteTab !== 'homepage') heading.append(remove);
+      form.append(heading);
+
+      if (state.siteTab === 'people') {
+        const groupSelectWrap = document.createElement('label');
+        groupSelectWrap.textContent = '所属分组';
+        const groupSelect = document.createElement('select');
+        groupSelect.name = 'groupIndex';
+        state.siteContent.peopleGroups.forEach((group, index) => {
+          const option = document.createElement('option');
+          option.value = String(index);
+          option.textContent = group.title;
+          option.selected = index === state.siteSelection.groupIndex;
+          groupSelect.append(option);
+        });
+        groupSelect.addEventListener('change', () => { state.dirty = true; });
+        groupSelectWrap.append(groupSelect);
+        form.append(
+          groupSelectWrap,
+          field('移动到目标分组中的位置（从 1 开始）', 'targetPosition', 1, { type: 'number', min: 1, max: 80 }),
+          fieldHelp('可上移、下移或拖动调整组内顺序；跨组移动请选择分组和位置。清空搜索后可拖动。排序保存为草稿，发布后生效。'),
+          field('当前分组标题', 'groupTitle', entry.group.title, { required: true, maxLength: 80 }),
+          field('姓名', 'name', entry.person.name, { required: true, maxLength: 80 }),
+          field('身份 / 职称', 'role', entry.person.role, { required: true, maxLength: 100 }),
+          field('研究方向 / 简介', 'focus', entry.person.focus ?? '', { required: true, multiline: true, rows: 3, maxLength: 240 }),
+          field('电子邮箱（可选）', 'email', entry.person.email ?? '', { type: 'email', maxLength: 254, placeholder: 'name@example.com' }),
+          field('个人简介（可选，最多 4000 字）', 'bio', entry.person.bio ?? '', { multiline: true, rows: 9, maxLength: 4000, placeholder: '填写学术经历、代表成果与获奖情况，可用空行分段；以纯文本显示。' }),
+          field('个人主页（可选）', 'homepage', entry.person.homepage ?? '', { placeholder: 'https://… 或 /…', maxLength: 500 }),
+          field('照片地址（可选）', 'photo', entry.person.photo ?? '', { placeholder: '/uploads/xxx.webp', maxLength: 500, file: true, mediaType: 'image' }),
+        );
+        const moves = document.createElement('div');
+        moves.className = 'member-order-actions';
+        for (const [action, text] of [['up', '上移'], ['down', '下移'], ['first', '移至首位'], ['last', '移至末位']]) {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'secondary';
+          button.textContent = text;
+          const index = entry.group.people.findIndex((person) => personKey(person) === personKey(entry.person));
+          button.disabled = ['up', 'first'].includes(action) ? index === 0 : index === entry.group.people.length - 1;
+          button.addEventListener('click', () => movePerson(personKey(entry.person), action));
+          moves.append(button);
+        }
+        form.append(moves);
+      } else if (state.siteTab === 'research') {
+        const item = entry.item;
+        form.append(
+          fieldHelp('保存并发布后同步更新研究方向页面与首页入口；首页入口是否展示由“首页展示”控制。清空配图后不再显示图片。'),
+          field('方向名称', 'title', item.title, { required: true, maxLength: 160 }),
+          field('研究内容', 'content', item.content, { required: true, multiline: true, rows: 5, maxLength: 2000 }),
+          field('技术优势', 'advantage', item.advantage, { multiline: true, maxLength: 1000 }),
+          field('应用场景', 'scene', item.scene, { multiline: true, maxLength: 1000 }),
+          field('方向配图（可选）', 'image', item.image, { maxLength: 500, file: true, mediaType: 'image' }),
+          field('配图说明（可选）', 'imageCaption', item.imageCaption, { maxLength: 240 }),
+        );
+      } else if (state.siteTab === 'projects') {
+        const item = entry.item;
+        form.append(
+          field('项目名称', 'title', item.title, { required: true, maxLength: 240, multiline: true, rows: 2 }),
+          field('开始年份', 'startYear', item.startYear, { required: true, type: 'number', min: 1900, max: 2100 }),
+          field('项目立项单位', 'source', item.source, { required: true, maxLength: 160 }),
+          field('关键词', 'keywords', (item.keywords || []).join('、'), { multiline: true, maxLength: 1620, placeholder: '多个关键词用逗号、顿号、中点或换行分隔' }),
+        );
+      } else if (state.siteTab === 'homepage') {
+        form.append(fieldHelp('选择首页需要展示的区块，保存并发布后生效。隐藏区块不会删除内容，也不影响独立页面访问。'));
+        for (const [key, label] of homeSections) {
+          form.append(selectField(label, key, String(entry.item[key]), [['false', '隐藏'], ['true', '显示']]));
+        }
+      } else if (state.siteTab === 'publications') {
+        const item = entry.item;
+        form.append(
+          selectField('论文公开展示', 'visible', String(item.visible), [['false', '后台保留，前台隐藏'], ['true', '公开显示']]),
+          fieldHelp('只有已人工核实并勾选“中科院一区”的论文可以公开展示；未确认论文保留在后台但不会出现在网站中。'),
+          field('年份', 'year', item.year, { required: true, maxLength: 20 }),
+          field('标题', 'title', item.title, { required: true, multiline: true, rows: 2, maxLength: 240 }),
+          field('期刊 / 会议', 'venue', item.venue, { required: true, maxLength: 160 }),
+          field('方向', 'area', item.area, { required: true, maxLength: 80 }),
+          field('作者（按论文署名顺序）', 'authors', item.authors, { multiline: true, maxLength: 1400 }),
+          field('完整引用（选填，未填时自动组合）', 'citation', item.citation, { multiline: true, maxLength: 3000 }),
+          highlightFields(item.highlights),
+          selectField('全文公开状态', 'rights', item.rights ?? 'pending', [['pending', '待确认（不显示全文入口）'], ['allowed', '已确认可公开'], ['restricted', '无公开授权（仅引用）']]),
+          fieldHelp('待确认或无公开授权时，首页及成果页均不显示全文入口。已确认可公开时优先使用官网链接，否则使用备用文件。重点标签须人工核实，缺少配图时使用通用文献图示。'),
+          field('官网链接（已确认可公开时优先使用）', 'officialUrl', item.officialUrl, { placeholder: 'https://', maxLength: 500 }),
+          field('备用 PDF（选填）', 'file', item.file, { placeholder: '/uploads/xxx.pdf', maxLength: 500, file: true, mediaType: 'pdf' }),
+          field('论文配图 / 期刊封面', 'thumbnail', item.thumbnail, { maxLength: 500, file: true, mediaType: 'image' }),
+        );
+      } else if (state.siteTab === 'videos') {
+        const item = entry.item;
+        form.append(
+          field('标题', 'title', item.title, { required: true, maxLength: 160 }),
+          field('说明', 'focus', item.focus, { required: true, maxLength: 120 }),
+          field('视频地址', 'file', item.file, { required: true, placeholder: '/uploads/xxx.mp4', maxLength: 500, file: true, mediaType: 'mp4' }),
+          field('视频封面（可选）', 'poster', item.poster ?? '', { placeholder: '留空使用默认封面，或选择已上传的图片', maxLength: 500, file: true, mediaType: 'image' }),
+        );
+      } else {
+        const item = entry.item;
+        form.append(
+          selectField('成果信息展示', 'visible', String(item.visible), [['false', '后台保留，前台隐藏'], ['true', '公开显示']]),
+          fieldHelp('逐项设置成果是否在前台显示。展示成果信息不要求上传 PDF；PDF 链接单独控制。'),
+          selectField('展示 PDF 链接', 'pdfVisible', String(item.pdfVisible ?? Boolean(item.file)), [['false', '不展示 PDF 链接'], ['true', '有文件时展示 PDF 链接']]),
+          fieldHelp('PDF 上传可选。关闭链接后仍可展示成果标题、年份、级别和封面；已上传的文件保留在素材库，此设置不限制通过已有文件地址访问。'),
+          field('年份', 'year', item.year, { required: true, maxLength: 20 }),
+          field('标题', 'title', item.title, { required: true, maxLength: 180 }),
+          field('说明 / 级别', 'level', item.level, { required: true, maxLength: 120 }),
+          field('文件地址', 'file', item.file, { placeholder: '/uploads/xxx.pdf', maxLength: 500, file: true, mediaType: 'pdf' }),
+          field('成果封面（可选）', 'preview', item.preview, { maxLength: 500, file: true, mediaType: 'image' }),
+          fieldHelp('无需上传 PDF 或封面也可发布成果。上传 PDF 后自动尝试生成封面；生成失败不会阻止发布。'),
+        );
+      }
+    }
+
+    function formValue(name) {
+      return byId('site-detail-form').elements[name]?.value ?? '';
+    }
+
+    function applySiteDetail() {
+      const form = byId('site-detail-form');
+      if (form.hidden || !state.siteSelection || state.siteSelection.tab !== state.siteTab) return;
+      const sel = state.siteSelection;
+      if (state.siteTab === 'homepage') {
+        for (const [key] of homeSections) state.siteContent.homepage[key] = formValue(key) === 'true';
+        return;
+      }
+      if (state.siteTab === 'people') {
+        Object.assign(sel, personLocation(sel.id));
+        const currentGroup = state.siteContent.peopleGroups[sel.groupIndex];
+        const person = currentGroup?.people?.[sel.personIndex];
+        if (!currentGroup || !person) return;
+        currentGroup.title = formValue('groupTitle');
+        const targetGroupIndex = Number(formValue('groupIndex'));
+        Object.assign(person, {
+          name: formValue('name'), role: formValue('role'), focus: formValue('focus'), email: formValue('email'),
+          bio: formValue('bio'), homepage: formValue('homepage'), photo: formValue('photo'),
+        });
+        if (Number.isInteger(targetGroupIndex) && targetGroupIndex !== sel.groupIndex && state.siteContent.peopleGroups[targetGroupIndex]) {
+          currentGroup.people.splice(sel.personIndex, 1);
+          const target = state.siteContent.peopleGroups[targetGroupIndex].people;
+          const position = Math.max(0, Math.min(target.length, Number(formValue('targetPosition')) - 1 || 0));
+          target.splice(position, 0, person);
+          state.siteSelection = { tab: 'people', id: personKey(person), ...personLocation(personKey(person)) };
+        }
+      } else {
+        const item = (state.siteContent[tabs[state.siteTab].path] || [])[sel.index];
+        if (!item) return;
+        if (state.siteTab === 'research') Object.assign(item, { title: formValue('title'), content: formValue('content'), advantage: formValue('advantage'), scene: formValue('scene'), image: formValue('image'), imageCaption: formValue('imageCaption') });
+        if (state.siteTab === 'projects') Object.assign(item, { title: formValue('title'), startYear: Number(formValue('startYear')), source: formValue('source'), keywords: formValue('keywords').split(/[、，,·\n]/).map((word) => word.trim()).filter(Boolean) });
+        if (state.siteTab === 'publications') Object.assign(item, {
+          visible: formValue('visible') === 'true', year: formValue('year'), title: formValue('title'), venue: formValue('venue'),
+          area: formValue('area'), file: formValue('file'), authors: formValue('authors'), citation: formValue('citation'),
+          rights: formValue('rights'), officialUrl: formValue('officialUrl'),
+          highlights: [...form.querySelectorAll('input[name=highlights]:checked')].map((input) => input.value),
+          thumbnail: formValue('thumbnail'),
+        });
+        if (state.siteTab === 'videos') Object.assign(item, { title: formValue('title'), focus: formValue('focus'), file: formValue('file'), poster: formValue('poster') });
+        if (state.siteTab === 'outcomes') Object.assign(item, { pdfVisible: formValue('pdfVisible') === 'true', visible: formValue('visible') === 'true', year: formValue('year'), title: formValue('title'), level: formValue('level'), file: formValue('file'), preview: formValue('preview') });
+      }
+    }
+
+    function deleteSelectedSiteItem() {
+      const sel = state.siteSelection;
+      if (!sel) return;
+      if (sel.tab === 'people') {
+        state.siteContent.peopleGroups[sel.groupIndex]?.people?.splice(sel.personIndex, 1);
+      } else {
+        state.siteContent[tabs[sel.tab].path].splice(sel.index, 1);
+      }
+      state.siteSelection = null;
+      state.dirty = true;
+      renderSiteList();
+      renderSiteDetail();
+      notice('已删除，保存后生效。');
+    }
+
+    function addSiteItem() {
+      if (state.siteTab === 'homepage') return;
+      applySiteDetail();
+      if (state.siteTab === 'people') {
+        let groupIndex = byId('site-group-filter').value !== 'all' ? Number(byId('site-group-filter').value) : 0;
+        if (!state.siteContent.peopleGroups.length) state.siteContent.peopleGroups.push({ id: `group-${Date.now()}`, title: '新增分组', people: [] });
+        if (!Number.isInteger(groupIndex) || !state.siteContent.peopleGroups[groupIndex]) groupIndex = 0;
+        const group = state.siteContent.peopleGroups[groupIndex];
+        const person = { id: `member-${crypto.randomUUID()}`, name: '新成员', role: tabs.people.label, focus: '', email: '', bio: '', homepage: '', photo: '' };
+        group.people.push(person);
+        state.siteSelection = { tab: 'people', id: person.id, groupIndex, personIndex: group.people.length - 1 };
+      } else {
+        const path = tabs[state.siteTab].path;
+        const item = state.siteTab === 'research'
+          ? { id: `direction-${crypto.randomUUID()}`, title: '新研究方向', content: '', advantage: '', scene: '', image: '', imageCaption: '' }
+          : state.siteTab === 'projects'
+          ? { startYear: new Date().getFullYear(), title: '新项目', source: '', keywords: [] }
+          : state.siteTab === 'publications'
+          ? { year: new Date().getFullYear().toString(), title: '待补充论文标题', venue: '', area: '', file: '', authors: '', citation: '', visible: false, rights: 'pending', highlights: [], officialUrl: '', thumbnail: '' }
+          : state.siteTab === 'videos'
+          ? { title: '待补充视频标题', focus: '', file: '/uploads/', poster: '' }
+          : { year: new Date().getFullYear().toString(), title: '待补充成果', level: '', file: '', preview: '', visible: false, pdfVisible: false };
+        state.siteContent[path].push(item);
+        state.siteSelection = { tab: state.siteTab, index: state.siteContent[path].length - 1 };
+      }
+      state.dirty = true;
+      renderSiteList();
+      renderSiteDetail();
+      notice('已添加，保存后生效。');
+    }
+
+    function setSiteTab(tab) {
+      applySiteDetail();
+      state.siteTab = tab;
+      state.siteSelection = tab === 'homepage' ? { tab, index: 0 } : null;
+      byId('site-add').hidden = tab === 'homepage';
+      byId('site-search').hidden = tab === 'homepage';
+      byId('site-search').value = '';
+      byId('site-add').textContent = tabs[tab].addLabel;
+      document.querySelectorAll('[data-site-tab]').forEach((button) => button.classList.toggle('nav-active', button.dataset.siteTab === tab));
+      renderSiteList();
+      renderSiteDetail();
+    }
+
+    function renderSiteContent(content) {
+      state.siteContent = structuredClone(content);
+      state.siteSelection = null;
+      setSiteTab(state.siteTab);
+      state.dirty = false;
+    }
+
+    async function loadSiteContent() {
+      let content = embeddedContent;
+      try {
+        const [result] = await Promise.all([api('site-content'), fetchMedia()]);
+        const remote = result.content;
+        const isEmpty = remote && !remote.peopleGroups?.length && !remote.researchDirections?.length && !remote.projects?.length && !remote.publications?.length && !remote.outcomeFiles?.length && !remote.introductionVideos?.length;
+        if (remote && !isEmpty) content = remote;
+      } catch {}
+      renderSiteContent(content);
+    }
+
+    /* ---------------- 品牌图标 ---------------- */
+
+    const brandingFields = [
+      ['favicon', '站点图标（SVG，推荐）'],
+      ['faviconPng', '备用 PNG 图标'],
+      ['faviconIco', 'ICO 图标'],
+      ['appleIcon', 'Apple 触控图标'],
+      ['universityLogo', '导航 Logo（左侧）'],
+      ['academyLogo', '导航 Logo（右侧）'],
+      ['footerLogo', '页脚标识'],
+      ['socialImage', '社交分享图'],
+      ['themeColor', '移动端主题色（留空不设置）'],
+    ];
+
+    function renderBrandingPreview() {
+      const root = byId('branding-preview-list');
+      root.replaceChildren();
+      if (!state.identity) return;
+      const form = byId('branding-form');
+      for (const [key, label] of brandingFields) {
+        const value = (form.elements[key]?.value ?? state.identity[key] ?? '').trim();
+        const row = document.createElement('div');
+        row.className = 'branding-preview-row';
+        const title = document.createElement('strong');
+        title.textContent = label;
+        const note = document.createElement('small');
+        note.className = value ? '' : 'field-help';
+        note.textContent = value || (key === 'themeColor' ? '未设置，使用浏览器默认' : key === 'socialImage' ? '未设置，使用默认分享图' : '留空时使用默认占位图标');
+        row.append(title);
+        if (key === 'themeColor' && value) {
+          const swatch = document.createElement('span');
+          swatch.className = 'branding-swatch';
+          swatch.style.background = value;
+          row.append(swatch);
+        } else if (value) {
+          const image = document.createElement('img');
+          image.src = value;
+          image.alt = label;
+          image.loading = 'lazy';
+          image.addEventListener('error', () => {
+            note.textContent = '无法加载此图片，请检查地址';
+            note.classList.add('is-error');
+          });
+          row.append(image);
+        }
+        row.append(note);
+        root.append(row);
+      }
+    }
+
+    function renderBrandingForm() {
+      const form = byId('branding-form');
+      form.replaceChildren();
+      if (!state.identity) {
+        form.append(fieldHelp('正在加载图标设置…'));
+        byId('branding-preview-list').replaceChildren();
+        return;
+      }
+      form.append(fieldHelp('图标支持站内路径（以 / 开头）或 https 链接，也可从素材库选择。留空使用默认占位图标。'));
+      for (const [key, label] of brandingFields) {
+        const isColor = key === 'themeColor';
+        form.append(field(label, key, state.identity[key] ?? '', {
+          file: !isColor,
+          mediaType: 'image',
+          maxLength: 500,
+          placeholder: isColor ? '#0066cc' : '/images/brand/... 或 https://…',
+          onInput: () => { state.identityDirty = true; renderBrandingPreview(); },
+        }));
+      }
+      renderBrandingPreview();
+    }
+
+    async function loadIdentity() {
+      try {
+        const result = await api('identity');
+        state.identity = result.identity;
+        state.identityDirty = false;
+      } catch (error) {
+        state.identity = null;
+        notice(`图标设置加载失败：${error.message}`, true);
+      }
+      renderBrandingForm();
+    }
+
+    function identityPayload() {
+      const form = byId('branding-form');
+      const payload = Object.fromEntries(brandingFields.map(([key]) => [key, form.elements[key]?.value.trim() ?? '']));
+      for (const [key, label] of brandingFields) {
+        const value = payload[key];
+        if (!value) continue;
+        if (key === 'themeColor') {
+          if (!/^#[0-9a-f]{3,8}$/i.test(value)) throw new Error(`${label}需使用 #RGB、#RRGGBB 或 #RRGGBBAA 格式。`);
+        } else if (!(value.startsWith('/') && !value.startsWith('//')) && !/^https:\/\/[^\s"'<>]+$/i.test(value)) {
+          throw new Error(`${label}需填写以 / 开头的站内路径或 https 链接。`);
+        }
+      }
+      return payload;
+    }
+
+    /* ---------------- 素材选择器 ---------------- */
+
+    function renderPicker() {
+      const root = byId('media-picker-list');
+      root.replaceChildren();
+      const query = byId('media-picker-search').value.trim().toLowerCase();
+      const type = byId('media-picker-type').value;
+      const media = state.media.filter((item) => mediaMatches(item, query, type));
+      if (!media.length) {
+        const empty = document.createElement('p');
+        empty.className = 'empty-state';
+        empty.textContent = '没有符合条件的素材。';
+        root.append(empty);
+        return;
+      }
+      for (const item of media) {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'media-pick-card';
+        const caption = document.createElement('span');
+        caption.textContent = mediaUrl(item);
+        card.append(mediaPreview(item), caption);
+        card.addEventListener('click', () => {
+          if (state.activeMediaTarget) {
+            state.activeMediaTarget.value = mediaUrl(item);
+            state.activeMediaTarget.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+          closeMediaPicker();
+        });
+        root.append(card);
+      }
+    }
+
+    async function openMediaPicker(input, type = 'all') {
+      state.activeMediaTarget = input;
+      if (!state.media.length) await fetchMedia();
+      byId('media-picker-type').value = type;
+      byId('media-picker-search').value = '';
+      byId('media-picker').hidden = false;
+      renderPicker();
+    }
+
+    function closeMediaPicker() {
+      byId('media-picker').hidden = true;
+      state.activeMediaTarget = null;
+    }
+
+    /* ---------------- 发布中心 ---------------- */
+
+    function releaseStatusLabel(status) {
+      return releaseStatusLabels[status] || status;
+    }
+
+    function renderReleaseJobs() {
+      const root = byId('release-jobs');
+      root.replaceChildren();
+      if (!state.releases.length) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state';
+        empty.textContent = '还没有发布记录。';
+        root.append(empty);
+        return;
+      }
+      for (const release of state.releases.slice(0, 30)) {
+        const row = document.createElement('div');
+        row.className = 'post-row';
+        const body = document.createElement('div');
+        const heading = document.createElement('strong');
+        heading.textContent = `${releaseStatusLabel(release.status)} · ${release.version}`;
+        const meta = document.createElement('p');
+        meta.textContent = `${release.created_by || 'admin'} · ${new Date(release.created_at).toLocaleString()} · ${release.version}`;
+        body.append(heading, meta);
+        if (release.completed_at) {
+          const elapsed = document.createElement('p');
+          const seconds = Math.max(0, Math.round((Date.parse(release.completed_at) - Date.parse(release.created_at)) / 1000));
+          elapsed.textContent = Number.isFinite(seconds) ? `耗时 ${seconds} 秒` : '';
+          body.append(elapsed);
+        }
+        const logs = document.createElement('button');
+        logs.type = 'button';
+        logs.className = 'secondary';
+        logs.textContent = '查看日志';
+        logs.addEventListener('click', () => run(async () => {
+          state.releaseSelected = release.version;
+          await loadReleaseLog(release.version);
+        }));
+        const actions = document.createElement('div');
+        actions.append(logs);
+        if (['failed', 'interrupted'].includes(release.status)) {
+          const retry = document.createElement('button');
+          retry.type = 'button';
+          retry.textContent = '重试此任务';
+          retry.addEventListener('click', () => run(async () => {
+            await api('releases', 'POST', { action: 'build' });
+            notice('发布任务已提交，可在发布中心查看进度。');
+            await loadReleases();
+          }));
+          actions.append(retry);
+        }
+        row.append(body, actions);
+        root.append(row);
+      }
+    }
+
+    function renderReleaseHistory() {
+      const root = byId('release-history');
+      root.replaceChildren();
+      const entries = state.releases.filter((release) => release.status === 'activated').slice(0, 30);
+      if (!entries.length) {
+        const empty = document.createElement('p');
+        empty.className = 'field-help';
+        empty.textContent = '还没有版本切换记录。';
+        root.append(empty);
+        return;
+      }
+      for (const release of entries) {
+        const line = document.createElement('p');
+        line.textContent = `${new Date(release.created_at).toLocaleString()} · ${release.created_by || 'admin'} · 激活 · ${release.version}`;
+        root.append(line);
+      }
+    }
+
+    async function loadReleaseLog(version) {
+      if (!version) {
+        byId('release-log').textContent = '暂时没有构建输出。';
+        return;
+      }
+      try {
+        const result = await api(`releases/${version}`);
+        byId('release-log').textContent = result.release?.build_log || '暂时没有构建输出。';
+      } catch (error) {
+        byId('release-log').textContent = error.message;
+      }
+    }
+
+    function renderDeployMode() {
+      const message = state.canBuild
+        ? '当前已配置 Deploy Hook：保存草稿后可直接在此发布。'
+        : '当前为直接上传部署，后台无法触发构建。请保存草稿后，在本地运行 npm run deploy 发布。';
+      byId('copy-mode').textContent = message;
+      byId('release-mode').textContent = message;
+    }
+
+    async function loadDeployMode() {
+      try {
+        const result = await api('releases');
+        state.canBuild = Boolean(result.canBuild);
+      } catch {
+        state.canBuild = false;
+      }
+      renderDeployMode();
+    }
+
+    async function loadReleases() {
+      const result = await api('releases');
+      state.releases = result.releases || [];
+      state.releaseCurrent = result.current || null;
+      state.releasePrevious = result.previous || null;
+      state.canBuild = Boolean(result.canBuild);
+      renderDeployMode();
+      byId('release-current').textContent = state.releaseCurrent || '—';
+      byId('release-previous').textContent = state.releasePrevious || '—';
+      const busy = state.releases.some((release) => release.status === 'building');
+      byId('release-status').textContent = busy ? '任务执行中，关闭此页面不会停止构建。' : '当前没有运行中的发布任务。';
+      updateActions();
+      renderReleaseJobs();
+      renderReleaseHistory();
+      const selected = state.releaseSelected || state.releases[0]?.version;
+      state.releaseSelected = selected || null;
+      await loadReleaseLog(selected);
+    }
+
+    /* ---------------- 文案 ---------------- */
+
+    const textKeyPattern = /^[a-z][a-z0-9]*(?:[._-][a-zA-Z0-9]+)+$/;
+
+    function validTextKey(key) {
+      return typeof key === 'string'
+        && key.length <= 100
+        && textKeyPattern.test(key)
+        && !key.split(/[._-]/).some((part) => ['__proto__', 'constructor', 'prototype'].includes(part));
+    }
+
+    function validTextValue(value) {
+      return typeof value === 'string'
+        && value.trim().length > 0
+        && value.length <= 4000
+        && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value)
+        && !/<\s*(?:[!?]|\/?\s*[a-z][^>]*>)/i.test(value)
+        && !/(?:javascript|vbscript)\s*:/i.test(value)
+        && !/&#(?:x0*3c|0*60);?/i.test(value)
+        && !/&lt;/i.test(value);
+    }
+
+    function placeholdersOf(value) {
+      return [...String(value).matchAll(/\{([a-zA-Z0-9_]+)\}/g)].map((match) => match[1]).sort().join(',');
+    }
+
+    function makeNode(tag, text, className) {
+      const node = document.createElement(tag);
+      if (text !== undefined) node.textContent = text;
+      if (className) node.className = className;
+      return node;
+    }
+
+    function copyNotice(message) {
+      byId('copy-notice').textContent = message;
+    }
+
+    function confirmTextLeave() {
+      return !state.textDirty || confirm('有未保存的文案修改，确定离开吗？');
+    }
+
+    function syncTextSelection() {
+      document.querySelectorAll('#copy-list .copy-row').forEach((button) => {
+        const active = Boolean(state.textSelected)
+          && button.dataset.key === state.textSelected.key
+          && button.dataset.module === state.textSelected.module;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+      });
+      byId('copy-empty').hidden = !byId('copy-form').hidden;
+      document.querySelector('.copy-manager').classList.toggle('is-editing', !byId('copy-form').hidden);
+    }
+
+    function closeTextEditor() {
+      state.textSelected = null;
+      state.textDirty = false;
+      byId('copy-form').hidden = true;
+      syncTextSelection();
+      refreshPreview();
+    }
+
+    function openTextEditor(entry) {
+      if (!confirmTextLeave()) return false;
+      state.textSelected = entry || null;
+      state.textDirty = false;
+      const keyInput = byId('copy-key');
+      keyInput.value = entry?.key ?? '';
+      keyInput.readOnly = Boolean(entry);
+      byId('copy-value').value = entry?.value ?? '';
+      byId('copy-heading').textContent = entry ? '编辑文案' : '新增文案';
+      byId('copy-default').hidden = !entry?.builtin;
+      byId('copy-default-value').textContent = entry?.default_value ?? '';
+      byId('copy-delete').hidden = !entry || (entry.builtin && !entry.overridden);
+      byId('copy-delete').textContent = entry?.builtin ? '恢复默认' : '删除文案';
+      byId('copy-form').hidden = false;
+      renderTextLocations(entry);
+      syncTextSelection();
+      (entry ? byId('copy-value') : keyInput).focus();
+      return true;
+    }
+
+    /* ---------------- 文案位置与页面预览 ---------------- */
+
+    function parseCopyDescriptor(raw) {
+      if (!raw) return null;
+      try {
+        const value = JSON.parse(raw);
+        return value && typeof value === 'object' && typeof value.key === 'string' ? value : null;
+      } catch {
+        return null;
+      }
+    }
+
+    function fillText(value, params) {
+      return String(value).replace(/\{([a-zA-Z0-9_]+)\}/g, (match, name) => (
+        params && params[name] !== undefined && params[name] !== null ? String(params[name]) : match
+      ));
+    }
+
+    function indexTextLocations(payload) {
+      const pages = Array.isArray(payload?.pages) ? payload.pages : [];
+      const byKey = new Map();
+      for (const page of pages) {
+        for (const entry of page.entries || []) {
+          if (!entry?.key) continue;
+          if (!byKey.has(entry.key)) byKey.set(entry.key, []);
+          byKey.get(entry.key).push({ ...entry, route: page.route, pageLabel: page.label || page.route });
+        }
+      }
+      state.textLocations = { pages, byKey };
+      state.textLocationsReady = true;
+    }
+
+    async function loadTextLocations(force = false) {
+      if (state.textLocationsReady && !force) return;
+      try {
+        indexTextLocations(await api('texts/locations'));
+      } catch (error) {
+        indexTextLocations({ pages: [] });
+        copyNotice(`位置索引加载失败：${error.message}`);
+      }
+      renderPreviewPages();
+    }
+
+    function renderPreviewPages() {
+      const select = byId('copy-preview-page');
+      select.replaceChildren();
+      if (!state.textLocations.pages.length) {
+        const option = makeNode('option', '暂无位置索引');
+        option.value = '';
+        select.append(option);
+        select.disabled = true;
+        byId('copy-preview-count').textContent = '位置索引为空，请重新构建后再试。';
+        return;
+      }
+      select.disabled = false;
+      for (const page of state.textLocations.pages) {
+        const option = makeNode('option', `${page.label}（${page.entries.length}）`);
+        option.value = page.route;
+        select.append(option);
+      }
+      const routes = state.textLocations.pages.map((page) => page.route);
+      const route = routes.includes(state.textPreviewRoute) ? state.textPreviewRoute : routes[0];
+      state.textPreviewRoute = route;
+      select.value = route;
+      if (state.textPreviewOpen) openPreview(route);
+    }
+
+    function openPreview(route, { scrollTo = null } = {}) {
+      if (!route) return;
+      state.textPreviewRoute = route;
+      if (scrollTo) state.textPreviewScrollTo = scrollTo;
+      const select = byId('copy-preview-page');
+      if ([...select.options].some((option) => option.value === route)) select.value = route;
+      const frame = byId('copy-preview-frame');
+      if (frame.dataset.route !== route) {
+        frame.dataset.route = route;
+        frame.src = route;
+      } else {
+        const target = state.textPreviewScrollTo;
+        state.textPreviewScrollTo = null;
+        refreshPreview({ scrollTo: target });
+      }
+    }
+
+    const previewManager = () => document.querySelector('.copy-manager-visual');
+
+    function applyPreviewSize() {
+      const manager = previewManager();
+      if (!manager) return;
+      manager.classList.toggle('is-preview-max', state.textPreviewMax);
+      if (state.textPreviewMax) manager.style.removeProperty('--preview-col');
+      else if (state.textPreviewWidth) manager.style.setProperty('--preview-col', `${state.textPreviewWidth}px`);
+      else manager.style.removeProperty('--preview-col');
+      byId('copy-preview-max').textContent = state.textPreviewMax ? '退出放大' : '放大预览';
+    }
+
+    function savePreviewSize() {
+      try {
+        localStorage.setItem(PREVIEW_SIZE_KEY, JSON.stringify({ width: state.textPreviewWidth, max: state.textPreviewMax }));
+      } catch { /* storage may be unavailable */ }
+    }
+
+    function setupPreviewResizer() {
+      const handle = byId('copy-preview-resizer');
+      const panel = byId('copy-preview-panel');
+      const clamp = (value) => Math.round(Math.max(320, Math.min(1100, value)));
+      let dragging = false;
+      let startX = 0;
+      let startWidth = 0;
+
+      const stop = () => {
+        if (!dragging) return;
+        dragging = false;
+        document.body.classList.remove('is-resizing-preview');
+        savePreviewSize();
+      };
+
+      handle.addEventListener('pointerdown', (event) => {
+        if (state.textPreviewMax || window.matchMedia('(max-width: 1240px)').matches) return;
+        dragging = true;
+        startX = event.clientX;
+        startWidth = panel.getBoundingClientRect().width;
+        handle.setPointerCapture(event.pointerId);
+        document.body.classList.add('is-resizing-preview');
+        event.preventDefault();
+      });
+      handle.addEventListener('pointermove', (event) => {
+        if (!dragging) return;
+        state.textPreviewWidth = clamp(startWidth - (event.clientX - startX));
+        applyPreviewSize();
+      });
+      handle.addEventListener('pointerup', stop);
+      handle.addEventListener('pointercancel', stop);
+      handle.addEventListener('keydown', (event) => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home'].includes(event.key)) return;
+        event.preventDefault();
+        if (event.key === 'Home') state.textPreviewWidth = 0;
+        else {
+          const current = state.textPreviewWidth || panel.getBoundingClientRect().width;
+          state.textPreviewWidth = clamp(current + (event.key === 'ArrowLeft' ? 48 : -48));
+        }
+        applyPreviewSize();
+        savePreviewSize();
+      });
+    }
+
+    function textLocationLabel(key) {
+      const locations = state.textLocations.byKey.get(key);
+      if (!locations?.length) return null;
+      const pages = [...new Set(locations.map((location) => location.pageLabel))];
+      const page = pages.length > 1 ? `${locations[0].pageLabel} 等 ${pages.length} 页` : locations[0].pageLabel;
+      const section = locations.length === 1 ? ` · ${locations[0].section}` : '';
+      return `${page}${section} · ${locations.length} 处`;
+    }
+
+    function draftTextMap() {
+      const map = new Map();
+      for (const item of state.texts) {
+        if (item.overridden || !item.builtin) map.set(item.key, item.value);
+      }
+      if (state.textSelected && !byId('copy-form').hidden) {
+        map.set(state.textSelected.key, byId('copy-value').value);
+      }
+      return map;
+    }
+
+    function refreshPreview({ scrollTo = null } = {}) {
+      const frame = byId('copy-preview-frame');
+      if (!state.textPreviewOpen || !frame.dataset.route) return;
+      let doc;
+      try { doc = frame.contentDocument; } catch { return; }
+      if (!doc || !doc.body) return;
+
+      if (!doc.getElementById('copy-preview-style')) {
+        const style = doc.createElement('style');
+        style.id = 'copy-preview-style';
+        style.textContent = `
+          [data-copy] { cursor: pointer; }
+          .copy-preview-hit { outline: 2px dashed rgba(0, 102, 204, .45); outline-offset: 2px; border-radius: 2px; }
+          .copy-preview-hit:hover { outline-color: rgba(0, 102, 204, .9); background: rgba(0, 102, 204, .06); }
+          .copy-preview-draft { box-shadow: inset 0 -2px 0 rgba(0, 150, 80, .55); }
+          .copy-preview-active { outline: 3px solid #0066cc !important; outline-offset: 2px; background: rgba(0, 102, 204, .14) !important; scroll-margin: 30vh; }
+        `;
+        doc.head.append(style);
+        doc.addEventListener('click', (event) => {
+          const hit = event.target?.closest?.('[data-copy]');
+          if (!hit) return;
+          const descriptor = parseCopyDescriptor(hit.getAttribute('data-copy'));
+          if (!descriptor) return;
+          event.preventDefault();
+          event.stopPropagation();
+          selectTextByKey(descriptor.key);
+        }, true);
+      }
+
+      const drafts = draftTextMap();
+      let count = 0;
+      for (const node of doc.querySelectorAll('[data-copy]')) {
+        const descriptor = parseCopyDescriptor(node.getAttribute('data-copy'));
+        if (!descriptor) continue;
+        count += 1;
+        node.classList.add('copy-preview-hit');
+        if (drafts.has(descriptor.key)) {
+          const next = fillText(drafts.get(descriptor.key), descriptor.params);
+          if (node.textContent !== next) node.textContent = next;
+          node.classList.add('copy-preview-draft');
+        } else {
+          node.classList.remove('copy-preview-draft');
+        }
+      }
+
+      for (const node of doc.querySelectorAll('[data-copy-attrs]')) {
+        let attributes;
+        try { attributes = JSON.parse(node.getAttribute('data-copy-attrs')); } catch { continue; }
+        for (const [attr, raw] of Object.entries(attributes || {})) {
+          const descriptor = parseCopyDescriptor(typeof raw === 'string' ? raw : JSON.stringify(raw));
+          if (!descriptor || !drafts.has(descriptor.key)) continue;
+          node.setAttribute(attr, fillText(drafts.get(descriptor.key), descriptor.params));
+        }
+      }
+
+      doc.querySelectorAll('.copy-preview-active').forEach((node) => node.classList.remove('copy-preview-active'));
+      if (state.textSelected) {
+        for (const node of doc.querySelectorAll('[data-copy]')) {
+          const descriptor = parseCopyDescriptor(node.getAttribute('data-copy'));
+          if (descriptor?.key === state.textSelected.key) node.classList.add('copy-preview-active');
+        }
+        if (scrollTo) doc.querySelector('.copy-preview-active')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+
+      byId('copy-preview-count').textContent = count
+        ? `本页 ${count} 处可编辑文案`
+        : '本页没有可定位文案';
+      renderPreviewAttrs();
+    }
+
+    let previewRefreshTimer = 0;
+    function schedulePreviewRefresh() {
+      clearTimeout(previewRefreshTimer);
+      previewRefreshTimer = setTimeout(() => refreshPreview(), 180);
+    }
+
+    function renderPreviewAttrs() {
+      const root = byId('copy-preview-attrs');
+      root.replaceChildren();
+      const page = state.textLocations.pages.find((item) => item.route === state.textPreviewRoute);
+      const entries = (page?.entries || []).filter((entry) => entry.type === 'attr');
+      if (!entries.length) return;
+      root.append(makeNode('span', '页面属性：', 'field-help'));
+      const seen = new Set();
+      for (const entry of entries) {
+        if (seen.has(entry.key)) continue;
+        seen.add(entry.key);
+        const metaName = entry.target?.match(/(?:name|property)="([^"]+)"/)?.[1];
+        const label = entry.target?.startsWith('title') ? '页面标题' : (metaName || entry.attr);
+        const button = makeNode('button', label);
+        button.type = 'button';
+        button.title = entry.key;
+        button.addEventListener('click', () => selectTextByKey(entry.key));
+        root.append(button);
+      }
+    }
+
+    function renderTextLocations(entry) {
+      const root = byId('copy-locations');
+      root.replaceChildren();
+      root.hidden = !entry;
+      byId('copy-locate').hidden = !entry;
+      if (!entry) return;
+      const locations = state.textLocations.byKey.get(entry.key);
+      if (!locations?.length) {
+        root.append(makeNode('p', '未在静态页面出现，可能用于动态内容、页面属性或后台界面。', 'field-help'));
+        byId('copy-locate').hidden = true;
+        return;
+      }
+      const byRoute = new Map();
+      for (const location of locations) {
+        if (!byRoute.has(location.route)) byRoute.set(location.route, { pageLabel: location.pageLabel, items: [] });
+        byRoute.get(location.route).items.push(location);
+      }
+      for (const [route, group] of byRoute) {
+        const total = group.items.length;
+        const section = group.items[0].section;
+        const sectionLabel = total === 1 && section && !['页面', '页面属性'].includes(section) ? ` · ${section}` : '';
+        const chip = makeNode('button', `${group.pageLabel}${sectionLabel} · ${total} 处`);
+        chip.type = 'button';
+        chip.className = 'copy-location-chip';
+        chip.addEventListener('click', () => openPreview(route, { scrollTo: entry.key }));
+        root.append(chip);
+      }
+    }
+
+    function selectTextByKey(key) {
+      const entry = state.texts.find((item) => item.key === key);
+      if (!entry) {
+        copyNotice(`未找到文案 ${key}`);
+        return;
+      }
+      if (!openTextEditor(entry)) return;
+      focusTextOnPage(entry);
+    }
+
+    function focusTextOnPage(entry) {
+      if (!entry || !state.textLocationsReady) return;
+      const locations = state.textLocations.byKey.get(entry.key);
+      if (!locations?.length) {
+        copyNotice(`“${entry.key}”没有出现在静态页面中。`);
+        return;
+      }
+      if (locations.some((location) => location.route === state.textPreviewRoute)) {
+        refreshPreview({ scrollTo: entry.key });
+      } else {
+        openPreview(locations[0].route, { scrollTo: entry.key });
+      }
+    }
+
+    function renderTextModules() {
+      const select = byId('copy-module');
+      const current = select.value;
+      select.replaceChildren();
+      const all = makeNode('option', '全部模块');
+      all.value = '';
+      select.append(all);
+      for (const module of [...new Set(state.texts.map((item) => item.module))].sort()) {
+        const label = textModuleLabel(module);
+        const option = makeNode('option', label === module ? module : `${label} · ${module}`);
+        option.value = module;
+        select.append(option);
+      }
+      if ([...select.options].some((option) => option.value === current)) select.value = current;
+    }
+
+    function renderTextList() {
+      const query = byId('copy-search').value.trim().toLocaleLowerCase();
+      const module = byId('copy-module').value;
+      const haystackOf = (item) => {
+        const locations = state.textLocations.byKey.get(item.key) || [];
+        const place = locations.map((location) => `${location.pageLabel} ${location.section}`).join(' ');
+        return `${item.key} ${item.value} ${item.default_value ?? ''} ${place}`.toLocaleLowerCase();
+      };
+      const matches = state.texts.filter((item) => (!module || item.module === module)
+        && (!query || haystackOf(item).includes(query)));
+      const pageCount = Math.max(1, Math.ceil(matches.length / 40));
+      state.textPage = Math.min(state.textPage, pageCount - 1);
+      const root = byId('copy-list');
+      root.replaceChildren();
+      byId('copy-results').textContent = `共 ${matches.length} 条文案`;
+      if (!matches.length) root.append(makeNode('p', '没有匹配的文案。', 'empty-state'));
+      for (const item of matches.slice(state.textPage * 40, state.textPage * 40 + 40)) {
+        const button = makeNode('button', undefined, 'site-list-item copy-row');
+        button.type = 'button';
+        button.dataset.key = item.key;
+        button.dataset.module = item.module;
+        button.disabled = state.busy;
+        const locationLabel = textLocationLabel(item.key);
+        button.append(
+          makeNode('code', item.key),
+          makeNode('span', item.value),
+          makeNode('small', item.builtin ? (item.overridden ? '已修改' : '内置默认') : '自定义'),
+          makeNode('small', locationLabel ?? '未在静态页面出现', locationLabel ? 'copy-loc' : 'copy-loc is-missing'),
+        );
+        button.addEventListener('click', () => {
+          if (!openTextEditor(item)) return;
+          focusTextOnPage(item);
+        });
+        root.append(button);
+      }
+      const pagination = byId('copy-pagination');
+      pagination.replaceChildren();
+      const previous = makeNode('button', '上一页', 'secondary');
+      previous.type = 'button';
+      previous.disabled = state.busy || state.textPage === 0;
+      previous.addEventListener('click', () => { state.textPage -= 1; renderTextList(); });
+      const next = makeNode('button', '下一页', 'secondary');
+      next.type = 'button';
+      next.disabled = state.busy || (state.textPage + 1) * 40 >= matches.length;
+      next.addEventListener('click', () => { state.textPage += 1; renderTextList(); });
+      pagination.append(previous, next);
+      syncTextSelection();
+    }
+
+    function renderTextAudit(audit) {
+      const root = byId('copy-audit-list');
+      root.replaceChildren();
+      if (!audit.length) {
+        root.append(makeNode('p', '暂无修改记录。'));
+        return;
+      }
+      const actionLabels = { create: '新增', update: '修改', delete: '删除', reset: '恢复默认' };
+      for (const entry of audit) {
+        const item = makeNode('article', undefined, 'copy-audit-entry');
+        item.append(makeNode('strong', entry.key));
+        item.append(makeNode('p', `${entry.actor} · ${entry.created_at} · ${textModuleLabel(entry.module)} · ${actionLabels[entry.action] || entry.action}`));
+        item.append(makeNode('p', '修改前'));
+        item.append(makeNode('pre', entry.old_value ?? '—'));
+        item.append(makeNode('p', '修改后'));
+        item.append(makeNode('pre', entry.new_value ?? '—'));
+        root.append(item);
+      }
+    }
+
+    async function loadTexts() {
+      const result = await api('texts');
+      state.texts = result.texts || [];
+      renderTextModules();
+      renderTextList();
+      refreshPreview();
+    }
+
+    async function loadTextAudit() {
+      const result = await api('texts/audit?limit=100');
+      renderTextAudit(result.audit || []);
+    }
+
+    /* ---------------- 事件绑定 ---------------- */
+
+    byId('new-post').addEventListener('click', newPost);
+    byId('back-list').addEventListener('click', () => { if (confirmLeave()) { state.dirty = false; setView('posts'); notice(''); } });
+    byId('nav-posts').addEventListener('click', () => { if (confirmLeave()) { state.dirty = false; state.textDirty = false; setView('posts'); notice(''); } });
+    byId('nav-media').addEventListener('click', () => run(async () => { if (confirmLeave()) { await loadMedia(); state.dirty = false; state.textDirty = false; setView('media'); notice(''); } }));
+    byId('nav-site').addEventListener('click', () => run(async () => { if (confirmLeave()) { await loadSiteContent(); state.dirty = false; state.textDirty = false; setView('site'); notice(''); } }));
+    byId('nav-branding').addEventListener('click', () => run(async () => { if (confirmLeave()) { state.dirty = false; state.textDirty = false; await loadIdentity(); setView('branding'); notice(''); } }));
+    byId('nav-releases').addEventListener('click', () => run(async () => { if (confirmLeave()) { state.dirty = false; state.textDirty = false; await loadReleases(); setView('releases'); notice(''); } }));
+    byId('nav-texts').addEventListener('click', () => run(async () => {
+      if (!confirmLeave()) return;
+      state.dirty = false;
+      state.textDirty = false;
+      closeTextEditor();
+      await loadTexts();
+      await loadTextLocations();
+      await loadTextAudit();
+      setView('texts');
+      notice('');
+      copyNotice('');
+    }));
+    byId('copy-new').addEventListener('click', () => openTextEditor(null));
+    byId('copy-cancel').addEventListener('click', () => { if (confirmTextLeave()) closeTextEditor(); });
+    byId('copy-search').addEventListener('input', () => { state.textPage = 0; renderTextList(); });
+    byId('copy-module').addEventListener('change', () => { state.textPage = 0; renderTextList(); });
+    byId('copy-reload').addEventListener('click', () => run(async () => {
+      if (!confirmLeave()) return;
+      closeTextEditor();
+      await loadTexts();
+      await loadTextLocations(true);
+      await loadTextAudit();
+      copyNotice('');
+    }));
+    byId('copy-preview-page').addEventListener('change', (event) => openPreview(event.target.value));
+    byId('copy-preview-toggle').addEventListener('click', () => {
+      state.textPreviewOpen = !state.textPreviewOpen;
+      byId('copy-preview-panel').hidden = !state.textPreviewOpen;
+      previewManager().classList.toggle('is-preview-hidden', !state.textPreviewOpen);
+      byId('copy-preview-toggle').textContent = state.textPreviewOpen ? '隐藏预览' : '显示预览';
+      if (state.textPreviewOpen) openPreview(state.textPreviewRoute || state.textLocations.pages[0]?.route || '');
+    });
+    byId('copy-preview-max').addEventListener('click', () => {
+      if (!state.textPreviewOpen) byId('copy-preview-toggle').click();
+      state.textPreviewMax = !state.textPreviewMax;
+      applyPreviewSize();
+      savePreviewSize();
+      refreshPreview();
+    });
+    byId('copy-preview-reset').addEventListener('click', () => {
+      state.textPreviewWidth = 0;
+      state.textPreviewMax = false;
+      byId('copy-preview-panel').style.height = '';
+      applyPreviewSize();
+      savePreviewSize();
+    });
+    setupPreviewResizer();
+    applyPreviewSize();
+    byId('copy-preview-frame').addEventListener('load', () => {
+      const target = state.textPreviewScrollTo;
+      state.textPreviewScrollTo = null;
+      refreshPreview({ scrollTo: target });
+    });
+    byId('copy-locate').addEventListener('click', () => {
+      if (state.textSelected) focusTextOnPage(state.textSelected);
+    });
+    byId('copy-form').addEventListener('input', () => { state.textDirty = true; schedulePreviewRefresh(); });
+    byId('copy-form').addEventListener('submit', (event) => {
+      event.preventDefault();
+      run(async () => {
+        const form = byId('copy-form');
+        if (!form.reportValidity()) return;
+        notice('');
+        const key = byId('copy-key').value.trim();
+        const value = byId('copy-value').value;
+        if (!validTextKey(key)) throw new Error('key 须以小写字母开头，以模块名和点分隔，只能使用字母、数字、点、短横线及下划线，最长 100 字符。');
+        if (!validTextValue(value)) throw new Error('文案不能为空或超过 4000 字符，不允许 HTML、脚本链接、HTML 实体注入或控制字符。');
+        const selected = state.textSelected;
+        const module = selected ? selected.module : key.split('.')[0];
+        if (!selected && state.texts.some((item) => item.key === key)) throw new Error('此 key 已存在，请使用其他 key。');
+        if (selected?.builtin && placeholdersOf(value) !== placeholdersOf(selected.default_value ?? '')) {
+          throw new Error('内置文案的占位符必须与默认文案一致，请不要新增或删除占位符。');
+        }
+        copyNotice('正在保存草稿…');
+        if (selected) {
+          await api(`texts/${encodeURIComponent(key)}?module=${encodeURIComponent(module)}&locale=zh`, 'PUT', { value });
+        } else {
+          await api('texts', 'POST', { module, key, value, locale: 'zh' });
+        }
+        await loadTexts();
+        if (!selected) {
+          const filter = byId('copy-module');
+          if ([...filter.options].some((option) => option.value === module)) filter.value = module;
+          renderTextList();
+        }
+        closeTextEditor();
+        await loadTextAudit();
+        state.textDirty = false;
+        copyNotice(state.canBuild
+          ? '文案草稿已保存，可点击“发布已保存草稿”上线。'
+          : '文案草稿已保存，请在本地运行 npm run deploy 发布。');
+      });
+    });
+    byId('copy-delete').addEventListener('click', () => run(async () => {
+      const selected = state.textSelected;
+      if (!selected) return;
+      const resetting = Boolean(selected.builtin);
+      if (!confirm(resetting ? `确定恢复“${selected.key}”的默认文案吗？` : `确定删除文案“${selected.key}”吗？`)) return;
+      notice('');
+      copyNotice(resetting ? '正在恢复默认…' : '正在删除文案…');
+      await api(`texts/${encodeURIComponent(selected.key)}?module=${encodeURIComponent(selected.module)}&locale=zh`, 'DELETE');
+      closeTextEditor();
+      await loadTexts();
+      await loadTextAudit();
+      state.textDirty = false;
+      copyNotice(resetting ? '已恢复默认文案，发布后生效。' : '文案草稿已删除，发布后生效。');
+    }));
+    byId('copy-publish').addEventListener('click', () => run(async () => {
+      if (state.textDirty) throw new Error('请先保存当前修改，再发布已保存草稿。');
+      if (!state.canBuild) throw new Error('当前为直接上传部署，后台无法构建。请在本地运行 npm run deploy 发布已保存的草稿。');
+      await api('releases', 'POST', { action: 'build' });
+      copyNotice('发布任务已提交，可在发布中心查看进度。');
+    }));
+    byId('copy-release-link').addEventListener('click', () => run(async () => {
+      if (!confirmLeave()) return;
+      state.textDirty = false;
+      closeTextEditor();
+      await loadReleases();
+      setView('releases');
+      notice('');
+    }));
+    byId('release-refresh').addEventListener('click', () => run(async () => { await loadReleases(); notice('状态已刷新。'); }));
+    byId('search-posts').addEventListener('input', renderPosts);
+    byId('filter-status').addEventListener('change', renderPosts);
+    byId('search-media').addEventListener('input', renderMedia);
+    byId('filter-media-type').addEventListener('change', renderMedia);
+    byId('post-form').addEventListener('input', () => { state.dirty = true; });
+    byId('post-form').addEventListener('submit', (event) => event.preventDefault());
+    byId('site-detail-form').addEventListener('input', () => { state.dirty = true; });
+    byId('site-detail-form').addEventListener('submit', (event) => event.preventDefault());
+    byId('site-search').addEventListener('input', () => { applySiteDetail(); renderSiteList(); });
+    byId('site-group-filter').addEventListener('change', () => { applySiteDetail(); renderSiteList(); });
+    byId('site-add').addEventListener('click', addSiteItem);
+    byId('site-reload').addEventListener('click', () => run(async () => { if (confirmLeave()) await loadSiteContent(); notice('已重新加载。'); }));
+    document.querySelectorAll('[data-site-tab]').forEach((button) => button.addEventListener('click', () => setSiteTab(button.dataset.siteTab)));
+    byId('media-picker-search').addEventListener('input', renderPicker);
+    byId('media-picker-type').addEventListener('change', renderPicker);
+    byId('close-media-picker').addEventListener('click', closeMediaPicker);
+    byId('logout').addEventListener('click', () => run(async () => { await fetch('/api/admin/logout', { method: 'POST' }); location.assign('/admin/login'); }));
+    window.addEventListener('beforeunload', (event) => { if (state.dirty || state.textDirty || state.identityDirty) event.preventDefault(); });
+
+    byId('save-site').addEventListener('click', () => run(async () => {
+      applySiteDetail();
+      notice('正在保存草稿…');
+      if (!byId('site-detail-form').reportValidity()) return;
+      const result = await api('site-content', 'PUT', { content: state.siteContent });
+      renderSiteContent(result.content ?? state.siteContent);
+      notice('草稿已保存，线上内容尚未改变。');
+    }));
+
+    byId('publish-site').addEventListener('click', () => run(async () => {
+      if (state.dirty) throw new Error('请先保存当前修改，再发布已保存草稿。');
+      if (!state.canBuild) throw new Error('当前为直接上传部署，后台无法构建。请在本地运行 npm run deploy 发布已保存的草稿。');
+      await api('releases', 'POST', { action: 'build' });
+      notice('发布任务已提交，可在发布中心查看进度。');
+      const link = document.createElement('button');
+      link.type = 'button';
+      link.className = 'text-button';
+      link.textContent = '发布中心';
+      link.addEventListener('click', () => run(async () => { await loadReleases(); setView('releases'); }));
+      byId('notice').append(' ', link);
+    }));
+
+    byId('save-branding').addEventListener('click', () => run(async () => {
+      notice('正在保存图标设置…');
+      const result = await api('identity', 'PUT', { identity: identityPayload() });
+      state.identity = result.identity;
+      state.identityDirty = false;
+      renderBrandingForm();
+      notice('图标设置已保存，发布构建后生效。');
+    }));
+
+    byId('publish-branding').addEventListener('click', () => run(async () => {
+      if (state.identityDirty) throw new Error('请先保存图标设置，再发布。');
+      if (!state.canBuild) throw new Error('当前为直接上传部署，后台无法构建。请在本地运行 npm run deploy 发布。');
+      await api('releases', 'POST', { action: 'build' });
+      notice('发布任务已提交，可在发布中心查看进度。');
+    }));
+
+    byId('release-rollback').addEventListener('click', () => run(async () => {
+      if (!confirm('确认回滚到上一版本？线上页面和已发布内容会一起恢复，当前草稿会保留。')) return;
+      await api('releases/previous', 'POST', { action: 'rollback' });
+      notice('已回滚。继续编辑前请重新加载草稿。');
+      await loadReleases();
+    }));
+
+    byId('release-rebuild').addEventListener('click', () => run(async () => {
+      if (!state.canBuild) throw new Error('当前为直接上传部署，后台无法构建。请在本地运行 npm run deploy 发布。');
+      await api('releases', 'POST', { action: 'build' });
+      notice('发布任务已提交，可在发布中心查看进度。');
+      await loadReleases();
+    }));
+
+    byId('save-draft').addEventListener('click', () => run(async () => { await saveCurrent(); }));
+    byId('publish').addEventListener('click', () => run(async () => { await saveCurrent('published'); }));
+    byId('unpublish').addEventListener('click', () => run(async () => {
+      if (!state.current?.id) throw new Error('请先保存文章。');
+      if (!confirm('确定撤回这篇文章的在线版本吗？草稿会保留。')) return;
+      await api(`news/${state.current.id}`, 'PUT', { ...payload(), status: 'draft' });
+      await refreshPosts();
+      const saved = state.posts.find((item) => item.id === state.current?.id);
+      if (saved) fillEditor(saved);
+      notice('已撤回发布。');
+    }));
+    byId('delete-post').addEventListener('click', () => run(async () => {
+      if (!state.current?.id) throw new Error('请先保存文章。');
+      if (!confirm(`确定删除“${state.current.title}”吗？在线版本也会撤下。`)) return;
+      await api(`news/${state.current.id}`, 'DELETE');
+      state.current = null;
+      state.dirty = false;
+      setView('posts');
+      await refreshPosts();
+      notice('文章已删除。');
+    }));
+    byId('preview').addEventListener('click', () => {
+      const panel = byId('preview-panel');
+      if (!panel.hidden) { panel.hidden = true; return; }
+      panel.textContent = byId('body').value;
+      panel.hidden = false;
+    });
+
+    byId('media-input').addEventListener('change', () => run(async () => {
+      const file = byId('media-input').files?.[0];
+      if (!file) return;
+      if (file.size > 100 * 1024 * 1024) throw new Error('素材不能超过 100 MB。');
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await fetch('/api/admin/media', { method: 'POST', credentials: 'same-origin', body: formData });
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.error || '上传失败。');
+      }
+      byId('media-input').value = '';
+      await loadMedia();
+      notice('素材已上传，可在站点资料中点击“选择素材”填入。');
+    }));
+
+    run(async () => {
+      const requestedView = new URLSearchParams(location.search).get('view');
+      await loadDeployMode();
+      await refreshPosts();
+      if (requestedView === 'media') {
+        await loadMedia();
+        setView('media');
+      } else if (requestedView === 'site') {
+        await loadSiteContent();
+        setView('site');
+      } else if (requestedView === 'branding') {
+        await loadIdentity();
+        setView('branding');
+      } else if (requestedView === 'releases') {
+        await loadReleases();
+        setView('releases');
+      } else if (requestedView === 'texts') {
+        await loadTexts();
+        await loadTextLocations();
+        await loadTextAudit();
+        setView('texts');
+      } else {
+        setView('posts');
+      }
+      notice('');
+    });
+  </script>
+</body>
+</html>

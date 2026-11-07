@@ -1,0 +1,96 @@
+---
+import { t } from "../lib/text-config";
+import Text from "./Text.astro";
+interface Props { id: string; categories: { value: string; label: string }[]; years?: string[] }
+const { id, categories, years } = Astro.props;
+---
+<div data-catalog>
+  <form data-catalog-controls hidden class="catalog-controls mb-6" role="search">
+    <div class="catalog-fields">
+      <div class="catalog-query">
+        <label for={`${id}-search`}><Text k="catalog.search" /></label>
+        <input id={`${id}-search`} name="q" type="search" maxlength="240" placeholder={t("catalog.placeholder")} autocomplete="off" />
+      </div>
+      <div>
+        <label for={`${id}-type`}><Text k="catalog.type" /></label>
+        <select id={`${id}-type`} name="type">
+          <option value=""><Text k="catalog.all" /></option>
+          {categories.map((category) => <option value={category.value}>{category.label}</option>)}
+        </select>
+      </div>
+      {years && <div>
+        <label for={`${id}-year`}><Text k="catalog.year" /></label>
+        <select id={`${id}-year`} name="year">
+          <option value=""><Text k="catalog.allYears" /></option>
+          {years.map((year) => <option value={year}>{year}</option>)}
+        </select>
+      </div>}
+      <button type="reset"><Text k="catalog.reset" /></button>
+    </div>
+    <p class="mt-3 text-sm text-fg-muted" data-catalog-count role="status" aria-live="polite" aria-atomic="true"></p>
+  </form>
+  <div data-catalog-empty hidden class="surface p-8 text-center">
+    <p class="font-semibold text-fg"><Text k="catalog.empty" /></p>
+    <p class="mt-2 text-sm text-fg-muted"><Text k="catalog.emptyHint" /></p>
+  </div>
+  <slot />
+</div>
+<style>
+  .catalog-controls { padding: 1.25rem; border: 1px solid var(--border); border-radius: .875rem; background: var(--bg-elev); }
+  .catalog-fields { display: flex; align-items: end; gap: .875rem; flex-wrap: wrap; }
+  .catalog-fields > div { flex: 1 1 130px; min-width: 0; }
+  .catalog-fields > .catalog-query { flex: 3 1 260px; }
+  label { display: block; margin-bottom: .5rem; font-size: .8125rem; color: var(--fg-muted); }
+  input, select { display: block; width: 100%; height: 44px; padding: .6rem .75rem; border: 1px solid var(--border-strong); border-radius: .5rem; background: var(--bg); color: var(--fg); font-size: .875rem; }
+  button { min-height: 44px; padding: .6rem 1rem; border: 1px solid var(--border-strong); border-radius: .5rem; color: var(--accent); background: var(--bg); cursor: pointer; }
+  button:hover { background: var(--accent-soft); }
+</style>
+<script>
+  import { t } from "../lib/text-config";
+  import { matchesCatalogItem, parseCatalogFilters } from "../lib/catalog";
+  document.querySelectorAll<HTMLElement>("[data-catalog]").forEach((root) => {
+    const form = root.querySelector<HTMLFormElement>("form");
+    const q = form?.elements.namedItem("q") as HTMLInputElement | null;
+    const type = form?.elements.namedItem("type") as HTMLSelectElement | null;
+    const year = form?.elements.namedItem("year") as HTMLSelectElement | null;
+    const count = root.querySelector<HTMLElement>("[data-catalog-count]");
+    const empty = root.querySelector<HTMLElement>("[data-catalog-empty]");
+    if (!form || !q || !type || !count || !empty) return;
+    const entries = [...root.querySelectorAll<HTMLElement>("[data-catalog-item]")].map((element) => ({
+      element, text: element.dataset.search ?? "", categories: (element.dataset.categories ?? "").split(" "), year: element.dataset.year,
+    }));
+    const apply = (save = true) => {
+      const filters = { q: q.value, type: type.value, year: year?.value ?? "" };
+      let visible = 0;
+      entries.forEach((entry) => {
+        const match = matchesCatalogItem(entry, filters);
+        entry.element.hidden = !match;
+        if (match) visible++;
+        else entry.element.querySelectorAll("video").forEach((video) => video.pause());
+      });
+      root.querySelectorAll<HTMLElement>('[data-catalog-section]').forEach((section) => {
+        section.hidden = !section.querySelector('[data-catalog-item]:not([hidden])');
+      });
+      root.dispatchEvent(new Event('catalog:filtered'));
+      count.textContent = t("catalog.count", { count: visible, total: entries.length });
+      empty.hidden = visible > 0;
+      if (save) {
+        const url = new URL(location.href);
+        for (const [key, value] of Object.entries(filters)) value ? url.searchParams.set(key, value) : url.searchParams.delete(key);
+        history.replaceState(null, "", url);
+      }
+    };
+    const restore = () => {
+      const filters = parseCatalogFilters(new URLSearchParams(location.search), [...type.options].map((o) => o.value), year ? [...year.options].map((o) => o.value) : []);
+      q.value = filters.q; type.value = filters.type; if (year) year.value = filters.year;
+      apply(false);
+    };
+    form.hidden = false;
+    restore();
+    form.addEventListener("input", () => apply());
+    form.addEventListener("change", () => apply());
+    form.addEventListener("submit", (event) => { event.preventDefault(); apply(); });
+    form.addEventListener("reset", (event) => { event.preventDefault(); q.value = ""; type.value = ""; if (year) year.value = ""; apply(); q.focus(); });
+    window.addEventListener("popstate", restore);
+  });
+</script>

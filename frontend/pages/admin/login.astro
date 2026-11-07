@@ -1,0 +1,93 @@
+---
+export const prerender = false
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>登录 | 管理后台</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #f5f5f5;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+      }
+      .login-box {
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        width: 100%;
+        max-width: 400px;
+      }
+      h1 { margin-bottom: 1.5rem; font-size: 1.5rem; text-align: center; }
+      .form-group { margin-bottom: 1rem; }
+      label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
+      input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+      }
+      button {
+        width: 100%;
+        padding: 0.75rem;
+        background: #0066cc;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+      }
+      button:hover { background: #0052a3; }
+      .error { color: #dc3545; margin-top: 1rem; text-align: center; display: none; }
+    </style>
+  </head>
+  <body>
+    <div class="login-box">
+      <h1>管理后台登录</h1>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="password">密码</label>
+          <input type="password" id="password" name="password" required autofocus />
+        </div>
+        <button type="submit">登录</button>
+        <div class="error" id="error-message"></div>
+      </form>
+    </div>
+    <script>
+      document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const password = document.getElementById('password').value;
+        const errorEl = document.getElementById('error-message');
+        
+        try {
+          const res = await fetch('/api/admin/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password }),
+          });
+          
+          if (res.ok) {
+            window.location.href = '/admin';
+          } else {
+            const data = await res.json();
+            errorEl.textContent = data.error || '登录失败';
+            errorEl.style.display = 'block';
+          }
+        } catch (err) {
+          errorEl.textContent = '网络错误';
+          errorEl.style.display = 'block';
+        }
+      });
+    </script>
+  </body>
+</html>

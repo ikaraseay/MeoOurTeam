@@ -1,0 +1,43 @@
+---
+import { t } from '../lib/text-config';
+import { type Publication, orderedHighlights, highlightLabel, publicationLink, publicationCitation } from '../lib/publications';
+interface Props { paper: Publication }
+const { paper } = Astro.props;
+const badges = orderedHighlights(paper);
+const link = publicationLink(paper);
+---
+<article data-catalog-item data-categories="paper" data-year={paper.year} data-search={`${paper.title} ${paper.authors ?? ''} ${paper.venue} ${paper.area} ${paper.year} ${paper.citation ?? ''} ${badges.map(highlightLabel).join(' ')}`} class:list={['publication-entry', { 'publication-featured': badges.length > 0 }]}>
+  {badges.length > 0 && <div class="publication-image">
+    {paper.thumbnail ? <img src={paper.thumbnail} alt={t('publications.thumbnailAlt', { title: paper.title })} width="180" height="240" loading="lazy" decoding="async" /> : <div class="publication-placeholder" aria-hidden="true"><svg viewBox="0 0 48 60" fill="none"><path d="M8 2h22l10 10v46H8zM30 2v12h10M15 27h18M15 35h18M15 43h12" stroke="currentColor" stroke-width="2"/></svg></div>}
+  </div>}
+  <div class="publication-body">
+    {badges.length > 0 && <ul class="publication-badges" aria-label={t('publications.highlights')}>{badges.map((badge) => <li>{highlightLabel(badge)}</li>)}</ul>}
+    <p class="publication-meta">{paper.year} · {paper.venue}</p>
+    <h3>{paper.title}</h3>
+    {paper.authors && <p class="publication-authors">{paper.authors}</p>}
+    <div class="publication-actions">
+      <details><summary>{t('publications.citation')}</summary><p class="publication-citation">{publicationCitation(paper)}</p></details>
+      {link && <a href={link.href} target="_blank" rel="noopener noreferrer">{t(link.official ? 'publications.official' : 'publications.localPdf')} <span aria-hidden="true">↗</span></a>}
+    </div>
+  </div>
+</article>
+<style>
+  .publication-entry { display: flex; gap: 1.5rem; padding: 1.25rem 0; border-bottom: 1px solid var(--border); color: var(--fg); }
+  .publication-featured { padding: 1.25rem; margin: .75rem 0; border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: .625rem; background: var(--accent-soft); }
+  .publication-body { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .publication-meta { font-size: .8125rem; color: var(--fg-muted); }
+  h3 { margin: .4rem 0; font-size: 1.0625rem; font-weight: 650; line-height: 1.6; }
+  .publication-authors { font-size: .875rem; line-height: 1.8; color: var(--fg-muted); }
+  .publication-badges { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .75rem; padding: 0; list-style: none; }
+  .publication-badges li { padding: .2rem .6rem; border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: .375rem; font-size: .75rem; font-weight: 600; color: var(--accent); background: var(--bg); }
+  .publication-image { width: 112px; flex-shrink: 0; }
+  .publication-image img, .publication-placeholder { width: 100%; aspect-ratio: 3/4; object-fit: contain; border: 1px solid var(--border); border-radius: .4rem; background: var(--bg-elev); }
+  .publication-placeholder { display: grid; place-items: center; color: var(--accent); }
+  svg { width: 48%; height: auto; }
+  .publication-actions { display: flex; flex-wrap: wrap; align-items: start; gap: .25rem 1.5rem; font-size: .8125rem; color: var(--accent); }
+  .publication-actions details { flex: 1; min-width: 150px; }
+  summary { cursor: pointer; min-height: 44px; align-content: center; width: fit-content; }
+  a { min-height: 44px; display: inline-flex; align-items: center; gap: .3rem; text-decoration: underline; text-underline-offset: 4px; }
+  .publication-citation { padding: .75rem; border-radius: .375rem; background: var(--bg-elev); color: var(--fg-muted); line-height: 1.8; user-select: all; }
+  @media (max-width: 500px) { .publication-entry { gap: .875rem; } .publication-image { width: 68px; } .publication-featured { padding: 1rem; } h3 { font-size: 1rem; } }
+</style>

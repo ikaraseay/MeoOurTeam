@@ -1,0 +1,121 @@
+---
+export const prerender = false
+
+import AdminLayout from '../../../layouts/AdminLayout.astro'
+
+const response = await fetch(`${Astro.url.origin}/api/admin/settings`, {
+  headers: { cookie: Astro.request.headers.get('cookie') || '' },
+})
+
+let settings = {}
+if (response.ok) {
+  const data = await response.json()
+  settings = data.settings || {}
+}
+---
+
+<AdminLayout title="系统设置">
+  <div class="page-header">
+    <h2>系统设置</h2>
+  </div>
+
+  <div class="card">
+    <h3>网站信息</h3>
+    <form id="settings-form" style="margin-top: 1rem;">
+      <div class="form-group">
+        <label for="site_name">网站名称</label>
+        <input type="text" id="site_name" name="site_name" class="form-control" value={settings.site_name || ''} />
+      </div>
+
+      <div class="form-group">
+        <label for="site_description">网站描述</label>
+        <textarea id="site_description" name="site_description" class="form-control" rows="3">{settings.site_description || ''}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="contact_email">联系邮箱</label>
+        <input type="email" id="contact_email" name="contact_email" class="form-control" value={settings.contact_email || ''} />
+      </div>
+
+      <div class="form-group">
+        <label for="address">地址</label>
+        <input type="text" id="address" name="address" class="form-control" value={settings.address || ''} />
+      </div>
+
+      <button type="submit" class="btn btn-primary">保存设置</button>
+      <div id="result" class="alert" style="display: none; margin-top: 1rem;"></div>
+    </form>
+  </div>
+
+  <div class="card" style="margin-top: 1.5rem;">
+    <h3>数据管理</h3>
+    <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+      <button class="btn btn-primary" id="export-btn">导出数据到 JSON</button>
+      <a href="/api/admin/export" target="_blank" class="btn btn-secondary">查看导出状态</a>
+    </div>
+    <div id="export-result" class="alert" style="display: none; margin-top: 1rem;"></div>
+  </div>
+
+  <div class="card" style="margin-top: 1.5rem;">
+    <h3>系统信息</h3>
+    <div style="margin-top: 1rem;">
+      <p><strong>运行环境：</strong> Cloudflare Workers</p>
+      <p><strong>数据库：</strong> Cloudflare D1</p>
+      <p><strong>存储：</strong> Cloudflare R2</p>
+      <p><strong>框架：</strong> Astro 7</p>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('settings-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const updates = {
+        site_name: form.site_name.value,
+        site_description: form.site_description.value,
+        contact_email: form.contact_email.value,
+        address: form.address.value,
+      };
+
+      const res = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates }),
+      });
+
+      const resultEl = document.getElementById('result');
+      resultEl.style.display = 'block';
+
+      if (res.ok) {
+        resultEl.className = 'alert alert-success';
+        resultEl.textContent = '设置已保存！';
+      } else {
+        const err = await res.json();
+        resultEl.className = 'alert alert-error';
+        resultEl.textContent = `保存失败: ${err.error}`;
+      }
+    });
+
+    document.getElementById('export-btn')?.addEventListener('click', async () => {
+      const resultEl = document.getElementById('export-result');
+      resultEl.style.display = 'block';
+      resultEl.textContent = '正在导出...';
+      
+      try {
+        const res = await fetch('/api/admin/export', { method: 'POST' });
+        const data = await res.json();
+        
+        if (res.ok) {
+          resultEl.className = 'alert alert-success';
+          resultEl.textContent = '导出成功！';
+        } else {
+          resultEl.className = 'alert alert-error';
+          resultEl.textContent = `导出失败: ${data.error}`;
+        }
+      } catch (err) {
+        resultEl.className = 'alert alert-error';
+        resultEl.textContent = '导出失败: 网络错误';
+      }
+    });
+  </script>
+</AdminLayout>

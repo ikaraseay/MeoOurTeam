@@ -1,0 +1,17 @@
+---
+import type { GetStaticPaths } from "astro";
+import BlogListing from "../../../components/BlogListing.astro";
+import { BLOG_PAGE_SIZE, getPublishedPosts, paginatePosts } from "../../../lib/posts";
+
+export const getStaticPaths = (async () => {
+  const all = await getPublishedPosts();
+  return Array.from({ length: Math.max(0, Math.ceil(all.length / BLOG_PAGE_SIZE) - 1) }, (_, i) => ({
+    params: { page: String(i + 2) },
+    props: { all },
+  }));
+}) satisfies GetStaticPaths;
+
+const { all } = Astro.props;
+const listing = paginatePosts(all, Number(Astro.params.page))!;
+---
+<BlogListing {...listing} totalCount={all.length} canonicalPath={`/blog/page/${listing.page}/`} />

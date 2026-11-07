@@ -1,0 +1,12 @@
+---
+import { videoPoster } from "../lib/media.mjs";
+
+interface Props { src: string; title: string; poster?: string }
+const { src, title, poster } = Astro.props;
+---
+
+<video src={src} poster={videoPoster(src, poster)} controls playsinline preload="none" class="video-player" aria-label={title}></video>
+
+<style>
+  .video-player { display: block; width: 100%; aspect-ratio: 16 / 9; background: var(--bg-elev); object-fit: contain; }
+</style>

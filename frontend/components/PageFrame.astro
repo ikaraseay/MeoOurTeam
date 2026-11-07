@@ -1,0 +1,37 @@
+---
+import { t } from "../lib/text-config";
+import Text from "./Text.astro";
+
+import Layout from "../layouts/Layout.astro";
+import Navbar from "./Navbar.astro";
+import Footer from "./Contact.astro";
+import { site } from "../lib/site";
+
+interface Props {
+  title: string;
+  eyebrow: string;
+  description: string;
+  canonicalPath: string;
+}
+
+const { title, eyebrow, description, canonicalPath } = Astro.props;
+---
+
+<Layout title={t("common.pageTitle", { title, site: site.name })} description={description} canonicalPath={canonicalPath}>
+  <Navbar />
+  <main>
+    <section class="px-4 md:px-8 page-heading-space border-b bg-elev border-default">
+      <div class="max-w-6xl mx-auto anim-fade-up">
+        <span class="eyebrow"><Text value={eyebrow} /></span>
+        <h1 class="font-bold tracking-tight mt-4 page-title text-fg">
+          <Text value={title} />
+        </h1>
+        <p class="mt-4 max-w-3xl text-base md:text-lg leading-relaxed text-fg-muted">
+          <Text value={description} />
+        </p>
+      </div>
+    </section>
+    <slot />
+  </main>
+  <Footer />
+</Layout>

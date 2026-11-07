@@ -1,0 +1,20 @@
+---
+import type { GetStaticPaths } from "astro";
+import BlogListing from "../../../../../components/BlogListing.astro";
+import { BLOG_PAGE_SIZE, getAllTags, getPostsByTag, paginatePosts, tagHref } from "../../../../../lib/posts";
+
+export const getStaticPaths = (async () => {
+  const paths = [];
+  for (const { tag } of await getAllTags()) {
+    const all = await getPostsByTag(tag);
+    for (let page = 2; page <= Math.ceil(all.length / BLOG_PAGE_SIZE); page++) {
+      paths.push({ params: { tag, page: String(page) }, props: { tag, all } });
+    }
+  }
+  return paths;
+}) satisfies GetStaticPaths;
+
+const { tag, all } = Astro.props;
+const listing = paginatePosts(all, Number(Astro.params.page))!;
+---
+<BlogListing {...listing} totalCount={all.length} tag={tag} canonicalPath={`${tagHref(tag)}page/${listing.page}/`} />

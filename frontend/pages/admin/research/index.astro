@@ -1,0 +1,68 @@
+---
+export const prerender = false
+
+import AdminLayout from '../../../layouts/AdminLayout.astro'
+
+const response = await fetch(`${Astro.url.origin}/api/admin/research`, {
+  headers: { cookie: Astro.request.headers.get('cookie') || '' },
+})
+
+let items = []
+if (response.ok) {
+  const data = await response.json()
+  items = data.research || []
+}
+---
+
+<AdminLayout title="研究方向管理">
+  <div class="page-header">
+    <h2>研究方向管理</h2>
+    <a href="/admin/research/new" class="btn btn-primary">添加研究方向</a>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>标题</th>
+        <th>图标</th>
+        <th>状态</th>
+        <th>排序</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {items.map((item) => (
+        <tr>
+          <td>{item.title}</td>
+          <td><code>{item.icon}</code></td>
+          <td>{item.is_active ? '活跃' : '隐藏'}</td>
+          <td>{item.sort_order}</td>
+          <td class="actions">
+            <a href={`/admin/research/${item.id}`} class="btn btn-secondary">编辑</a>
+            <button class="btn btn-danger" data-id={item.id} onclick="deleteItem(this)">删除</button>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+
+  {items.length === 0 && (
+    <div class="card" style="text-align: center; color: var(--muted);">
+      暂无研究方向
+    </div>
+  )}
+
+  <script>
+    async function deleteItem(btn) {
+      if (!confirm('确定要删除吗？')) return;
+      const id = btn.dataset.id;
+      const res = await fetch(`/api/admin/research/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        btn.closest('tr').remove();
+      } else {
+        alert('删除失败');
+      }
+    }
+    window.deleteItem = deleteItem;
+  </script>
+</AdminLayout>

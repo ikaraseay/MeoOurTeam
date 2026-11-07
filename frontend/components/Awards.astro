@@ -1,0 +1,169 @@
+---
+import { t, binding } from "../lib/text-config";
+import Text from "./Text.astro";
+
+import PublicationEntry from "./PublicationEntry.astro";
+import VideoPlayer from "./VideoPlayer.astro";
+import SectionHeader from "./SectionHeader.astro";
+import { outcomes } from "../lib/outcomes";
+import { awardProofs, demos, projects, publications } from "../lib/research-materials";
+import { formatDate } from "../lib/format";
+---
+
+<section
+  id="outcomes"
+  class="px-4 md:px-8 section-space border-b bg-base border-default"
+>
+  <div class="max-w-6xl mx-auto">
+    <SectionHeader
+      eyebrow={t("awards.eyebrow001")}
+      index="04"
+      title={t("awards.title002")}
+      description={t("awards.description003")}
+    />
+
+    <ol class="mt-8 grid gap-4 md:gap-6 md:grid-cols-2">
+      {
+        outcomes.map((outcome, index) => (
+          <li class="surface p-6 md:p-8 flex flex-col gap-6 anim-fade-up">
+            <div class="flex items-center justify-between gap-4 font-mono text-xs">
+              <span class="text-accent"><Text k={outcome.kind} /> / <Text value={String(index + 1).padStart(2, "0")} /></span>
+              <time datetime={outcome.date} class="text-fg-subtle">
+                <Text value={formatDate(new Date(`${outcome.date}T00:00:00`))} />
+              </time>
+            </div>
+            <div>
+              <h3 class="font-bold tracking-tight text-xl md:text-2xl leading-snug text-fg">
+                <Text value={outcome.title} />
+              </h3>
+              <p class="mt-4 text-sm md:text-base leading-relaxed text-fg-muted">
+                <Text value={outcome.context} />
+              </p>
+            </div>
+            <a data-copy-attrs={JSON.stringify({"aria-label": binding(t("awards.text019", { p0: outcome.title, p1: outcome.sourceLabel }))})}
+              href={outcome.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="mt-auto inline-flex items-center gap-2 self-start text-sm font-medium text-accent underline underline-offset-4"
+              aria-label={t("awards.text019", { p0: outcome.title, p1: outcome.sourceLabel })}
+            >
+              <Text k="awards.text004" /> <span aria-hidden="true">↗</span>
+            </a>
+          </li>
+        ))
+      }
+    </ol>
+
+    <div class="mt-10 grid gap-4 md:grid-cols-5">
+      <div class="md:col-span-2">
+        <p class="font-mono text-xs text-accent"><Text k="awards.text005" /></p>
+        <h3 class="mt-3 font-bold tracking-tight text-2xl md:text-3xl text-fg">
+          <Text k="awards.text006" />
+        </h3>
+        <p class="mt-4 leading-relaxed text-fg-muted">
+          <Text k="awards.text007" />
+        </p>
+      </div>
+      <div class="md:col-span-3 grid gap-3">
+        {
+          projects.map((project) => (
+            <article class="surface p-5 md:p-6">
+              <div class="flex flex-wrap items-center gap-2 font-mono text-xs text-fg-subtle">
+                <span class="text-accent"><Text value={String(project.startYear)} /></span>
+                <span><Text value={project.source} /></span>
+              </div>
+              <h4 class="mt-3 font-semibold leading-snug text-fg"><Text value={project.title} /></h4>
+              <p class="mt-2 text-sm leading-relaxed text-fg-muted"><Text value={project.keywords.join(" · ")} /></p>
+            </article>
+          ))
+        }
+      </div>
+    </div>
+
+    {publications.length > 0 && <div class="mt-16 md:mt-20">
+      <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p class="font-mono text-xs text-accent"><Text k="awards.text008" /></p>
+          <h3 class="mt-3 font-bold tracking-tight text-2xl md:text-3xl text-fg">
+            <Text k="awards.text009" />
+          </h3>
+        </div>
+        <p class="max-w-2xl text-sm leading-relaxed text-fg-muted">
+          <Text k="awards.text010" />
+        </p>
+      </div>
+
+      <div class="mt-8 grid gap-4 lg:grid-cols-2">
+        {
+          publications.map((paper) => (
+            <PublicationEntry paper={paper} />
+          ))
+        }
+      </div>
+    </div>}
+
+    {demos.length > 0 && <div class="mt-16 md:mt-20">
+      <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p class="font-mono text-xs text-accent"><Text k="awards.text012" /></p>
+          <h3 class="mt-3 font-bold tracking-tight text-2xl md:text-3xl text-fg">
+            <Text k="awards.text013" />
+          </h3>
+        </div>
+        <p class="max-w-2xl text-sm leading-relaxed text-fg-muted">
+          <Text k="awards.text014" />
+        </p>
+      </div>
+
+      <div class="mt-8 grid gap-4 lg:grid-cols-2">
+        {
+          demos.map((demo) => (
+            <article class="surface overflow-hidden">
+              <VideoPlayer src={demo.file} title={demo.title} poster={demo.poster} />
+              <div class="p-5 md:p-6">
+                <p class="font-mono text-xs text-accent">{demo.focus}</p>
+                <h4 class="mt-2 font-semibold text-fg">{demo.title}</h4>
+              </div>
+            </article>
+          ))
+        }
+      </div>
+    </div>}
+
+    {awardProofs.length > 0 && <div class="mt-16 md:mt-20">
+      <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p class="font-mono text-xs text-accent"><Text k="awards.text015" /></p>
+          <h3 class="mt-3 font-bold tracking-tight text-2xl md:text-3xl text-fg">
+            <Text k="awards.text016" />
+          </h3>
+        </div>
+        <p class="max-w-2xl text-sm leading-relaxed text-fg-muted">
+          <Text k="awards.text017" />
+        </p>
+      </div>
+
+      <div class="mt-8 grid gap-4 md:grid-cols-2">
+        {
+          awardProofs.map((award) => (
+            <article class="surface p-5 md:p-6 flex flex-col gap-4">
+              <div class="font-mono text-xs text-accent">{award.year}</div>
+              <div>
+                <h4 class="font-semibold leading-snug text-fg">{award.title}</h4>
+                <p class="mt-2 text-sm text-fg-muted">{award.level}</p>
+              </div>
+              <a
+                href={award.file}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="mt-auto inline-flex self-start text-sm font-medium text-accent underline underline-offset-4"
+              >
+                <Text k="awards.text018" />
+              </a>
+            </article>
+          ))
+        }
+      </div>
+    </div>}
+  </div>
+</section>

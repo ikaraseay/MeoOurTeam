@@ -1,0 +1,74 @@
+---
+import { t } from "../lib/text-config";
+import Text from "../components/Text.astro";
+
+import Layout from "../layouts/Layout.astro";
+import Navbar from "../components/Navbar.astro";
+import Contact from "../components/Contact.astro";
+import CampusShowcase from "../components/CampusShowcase.astro";
+import SectionHeader from "../components/SectionHeader.astro";
+import LatestPosts from "../components/LatestPosts.astro";
+import { site } from "../lib/site";
+
+import { homepageSections } from "../lib/home";
+import { researchDirections } from "../lib/research";
+import ResearchHighlights from "../components/home/ResearchHighlights.astro";
+import TeamProfile from "../components/home/TeamProfile.astro";
+import JoinTeam from "../components/home/JoinTeam.astro";
+---
+
+<Layout>
+  <Navbar />
+  <main>
+    <section class="px-4 md:px-8 section-space home-hero border-b border-default">
+      <div class="max-w-6xl mx-auto grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+        <div class="anim-fade-up">
+          <span class="eyebrow"><Text k="home.text001" /></span>
+          <h1 class="font-bold tracking-tight mt-4 home-title text-fg">
+            <Text value={site.lab.name} />
+          </h1>
+          <p class="mt-6 max-w-3xl text-base md:text-lg leading-relaxed text-fg-muted">
+            <Text value={site.lab.intro} />
+          </p>
+          <p class="mt-4 max-w-3xl text-base md:text-lg leading-relaxed text-fg-muted">
+            <Text k="home.text002" /><Text value={site.professor.name} /><Text k="home.text003" /><Text value={site.lab.advisor} /><Text k="home.text004" />
+          </p>
+          <div class="mt-8 flex flex-wrap gap-3">
+            <a href="#team" class="rounded-full px-5 py-2.5 text-sm font-medium transition-colors bg-accent text-accent-fg">
+              <Text k="home.text005" />
+            </a>
+            <a href="/outcomes/" class="rounded-full px-5 py-2.5 text-sm font-medium transition-colors border border-default text-fg">
+              <Text k="home.text006" />
+            </a>
+          </div>
+        </div>
+
+        <CampusShowcase />
+      </div>
+    </section>
+
+    <TeamProfile />
+
+    {homepageSections.researchDirections && researchDirections.length > 0 && <section class="px-4 md:px-8 section-space border-b bg-elev border-default">
+      <div class="max-w-6xl mx-auto">
+        <SectionHeader eyebrow={t("home.text018")} index="02" title={t("home.text019")} description={site.lab.mission}>
+          <a slot="aside" href="/research/" class="text-sm font-medium text-accent underline underline-offset-4"><Text k="home.text020" /></a>
+        </SectionHeader>
+        <div class="mt-10 grid gap-4 md:grid-cols-2">
+          {researchDirections.map((direction, index) => (
+            <a data-reveal href={`/research/#${direction.id}`} class="surface feature-card p-6">
+              <div class="card-marker" aria-hidden="true"><span><Text k="home.text021" /> <Text value={String(index + 1).padStart(2, "0")} /></span><span class="card-arrow">↗</span></div>
+              <h3 class="font-semibold text-lg text-fg">{direction.title}</h3>
+              <p class="mt-3 text-sm leading-relaxed text-fg-muted">{direction.content}</p>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>}
+
+    {homepageSections.researchHighlights && <ResearchHighlights />}
+    {homepageSections.latestNews && <LatestPosts />}
+    {homepageSections.joinTeam && <JoinTeam />}
+  </main>
+  <Contact />
+</Layout>

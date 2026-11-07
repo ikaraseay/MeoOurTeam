@@ -1,0 +1,71 @@
+---
+export const prerender = false
+
+import AdminLayout from '../../../layouts/AdminLayout.astro'
+import siteContentRaw from '../../../../data/runtime/site-content.json'
+
+const siteContent = siteContentRaw as { 
+  peopleGroups: Array<{ 
+    id: string,
+    title: string,
+    people?: Array<{
+      name: string,
+      role: string,
+      email: string,
+      photo: string,
+      bio: string,
+      homepage: string,
+      focus: string
+    }>
+  }>
+}
+
+const members = siteContent.peopleGroups.flatMap(g => 
+  (g.people || []).map(p => ({
+    id: p.name.toLowerCase().replace(/\s+/g, '-'),
+    name: p.name,
+    role: p.role,
+    email: p.email || '',
+    is_active: 1,
+    group: g.title
+  }))
+)
+---
+
+<AdminLayout title="成员管理">
+  <div class="page-header">
+    <h2>成员管理</h2>
+    <a href="/admin/members/new" class="btn btn-primary">添加成员</a>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>姓名</th>
+        <th>角色</th>
+        <th>分组</th>
+        <th>状态</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {members.map((member) => (
+        <tr>
+          <td>{member.name}</td>
+          <td>{member.role}</td>
+          <td>{member.group}</td>
+          <td>{member.is_active ? '活跃' : '隐藏'}</td>
+          <td class="actions">
+            <a href={`/admin/members/${member.id}`} class="btn btn-secondary">编辑</a>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+
+  {members.length === 0 && (
+    <div class="card" style="text-align: center; color: var(--muted);">
+      暂无成员，点击"添加成员"开始
+    </div>
+  )}
+</AdminLayout>

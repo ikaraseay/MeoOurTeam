@@ -1,0 +1,18 @@
+---
+import { t, binding } from "../lib/text-config";
+import Text from "./Text.astro";
+
+interface Props { page: number; totalPages: number; basePath?: string }
+const { page, totalPages, basePath = "/blog/" } = Astro.props;
+const href = (n: number) => n === 1 ? basePath : `${basePath}page/${n}/`;
+---
+
+{totalPages > 1 && (
+  <nav data-copy-attrs={JSON.stringify({"aria-label": binding(t("pagination.arialabel001"))})} aria-label={t("pagination.arialabel001")} class="mt-10 flex items-center justify-center gap-2 text-sm">
+    {page > 1 && <a href={href(page - 1)} class="surface px-3 py-2 text-fg"><Text k="pagination.text002" /></a>}
+    {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+      <a href={href(n)} aria-current={n === page ? "page" : undefined} class:list={["surface px-3 py-2", n === page ? "text-accent" : "text-fg"]}>{n}</a>
+    ))}
+    {page < totalPages && <a href={href(page + 1)} class="surface px-3 py-2 text-fg"><Text k="pagination.text003" /></a>}
+  </nav>
+)}

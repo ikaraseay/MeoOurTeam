@@ -1,0 +1,40 @@
+---
+import { site } from "../../lib/site";
+import { teamMilestones, honors } from "../../lib/home";
+import Text from "../Text.astro";
+---
+
+<section id="team" class="px-4 md:px-8 section-space border-b bg-base border-default">
+  <div class="max-w-6xl mx-auto grid gap-6 md:grid-cols-2">
+    <article data-reveal class="surface p-6 md:p-8">
+      <p class="font-mono text-xs text-accent"><Text k="home.text011" /></p>
+      <h2 class="mt-4 font-bold tracking-tight text-2xl md:text-3xl text-fg"><Text k="home.text012" /></h2>
+      <p class="mt-5 leading-relaxed text-fg-muted">
+        <Text k="home.text013" /><Text value={site.professor.name} /><Text k="home.text014" />
+      </p>
+      <ul class="mt-6 space-y-4">
+        {teamMilestones.map((item, index) => (
+          <li class="flex gap-4">
+            <span class="font-mono text-sm text-accent"><Text value={String(index + 1).padStart(2, "0")} /></span>
+            <span class="leading-relaxed text-fg-muted"><Text value={item} /></span>
+          </li>
+        ))}
+      </ul>
+    </article>
+
+    <aside data-reveal class="surface feature-card direction-card p-6 md:p-8">
+      <p class="font-mono text-xs text-accent"><Text k="home.text015" /></p>
+      <h2 class="mt-4 font-bold tracking-tight text-2xl text-fg"><Text k="home.text016" /></h2>
+      <ul class="mt-6 space-y-4">
+        {honors.map((item) => (
+          <li class="border-b border-default pb-4 last:border-b-0 last:pb-0">
+            <p class="font-medium text-fg"><Text value={item} /></p>
+          </li>
+        ))}
+      </ul>
+      <a href="/members/" class="mt-8 inline-flex text-sm font-medium text-accent underline underline-offset-4">
+        <Text k="home.text017" />
+      </a>
+    </aside>
+  </div>
+</section>

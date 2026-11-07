@@ -1,0 +1,61 @@
+---
+import { t } from "../lib/text-config";
+import Text from "../components/Text.astro";
+
+import { site } from "../lib/site";
+import PageFrame from "../components/PageFrame.astro";
+
+import { researchDirections as directions } from "../lib/research";
+---
+
+<PageFrame
+  title={t("hero.text003")}
+  eyebrow={t("research.eyebrow014")}
+  description={t("research.description015")}
+  canonicalPath="/research/"
+>
+  <section class="px-4 md:px-8 section-space bg-base">
+    <figure class="max-w-6xl mx-auto research-panorama surface mb-6 grid md:grid-cols-2">
+      <img src={site.researchVisuals.vision.src} srcset={site.researchVisuals.vision.srcSet} sizes="(min-width: 768px) 576px, calc(100vw - 32px)" alt={site.researchVisuals.vision.alt} width="1440" height="960" fetchpriority="high" />
+      <figcaption class="p-6 md:p-8">
+        <h2 class="text-xl font-bold text-fg"><Text k="visuals.visionTitle" /></h2>
+        <p class="mt-3 text-sm leading-relaxed text-fg-muted"><Text value={site.lab.mission} /></p>
+        <div class="mt-5 flex flex-wrap gap-2">
+          {directions.map((item) => <a href={`#${item.id}`} class="research-jump text-sm">{item.title}</a>)}
+        </div>
+        <p class="mt-5 text-xs leading-relaxed text-fg-subtle"><Text value={site.researchVisuals.vision.caption} /></p>
+      </figcaption>
+    </figure>
+    <div class="max-w-6xl mx-auto grid gap-6 md:grid-cols-2">
+      {directions.map((item, index) => (
+        <article id={item.id} data-reveal class="surface feature-card direction-card p-6 md:p-8">
+          {item.image && <figure class="research-detail-image mb-5">
+            <img src={item.image} alt={item.imageCaption || item.title} width="1200" height="675" loading="lazy" decoding="async" />
+            {item.imageCaption && <figcaption class="text-xs text-fg-muted mt-2">{item.imageCaption}</figcaption>}
+          </figure>}
+          <p class="font-mono text-xs text-accent"><Text value={String(index + 1).padStart(2, "0")} /></p>
+          <h2 class="mt-3 font-bold tracking-tight text-xl md:text-2xl text-fg">{item.title}</h2>
+          <p class="mt-4 leading-relaxed text-fg-muted">{item.content}</p>
+          {(item.advantage || item.scene) && <dl class="mt-6 grid gap-4 text-sm">
+            {item.advantage && <div>
+              <dt class="text-fg-subtle"><Text k="research.text016" /></dt>
+              <dd class="mt-1 text-fg">{item.advantage}</dd>
+            </div>}
+            {item.scene && <div>
+              <dt class="text-fg-subtle"><Text k="research.text017" /></dt>
+              <dd class="mt-1 text-fg">{item.scene}</dd>
+            </div>}
+          </dl>}
+        </article>
+      ))}
+    </div>
+  </section>
+</PageFrame>
+
+<style>
+  .research-panorama { overflow: hidden; background: var(--bg-elev); align-items: center; }
+  .research-panorama img { width: 100%; height: auto; display: block; }
+  .research-jump { padding: .55rem .75rem; border: 1px solid var(--border-strong); border-radius: .5rem; color: var(--accent); background: var(--bg); }
+  .research-jump:hover { background: var(--accent-soft); }
+  .research-detail-image img { width: 100%; aspect-ratio: 16 / 9; height: auto; object-fit: cover; border-radius: .5rem; }
+</style>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 225 144" role="img" aria-label="示例实验室">
+  <g fill="#000">
+    <path d="M62 12 93 30v36L62 84 31 66V30Z" opacity=".92"/>
+    <path d="M62 24 81 36v24L62 72 43 60V36Z" opacity=".45"/>
+    <text x="112" y="74" font-family="-apple-system, 'PingFang SC', 'Noto Sans CJK SC', sans-serif" font-size="21" font-weight="700" letter-spacing="1.5">示例实验室</text>
+    <text x="113" y="94" font-family="-apple-system, 'Helvetica Neue', Arial, sans-serif" font-size="8.4" letter-spacing="1.6" opacity=".7">EXAMPLE LAB</text>
+    <text x="32" y="118" font-family="-apple-system, 'PingFang SC', 'Noto Sans CJK SC', sans-serif" font-size="10" letter-spacing="2" opacity=".55">科研 · 教学 · 合作</text>
+  </g>
+</svg>

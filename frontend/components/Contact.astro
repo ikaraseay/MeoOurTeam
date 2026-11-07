@@ -1,0 +1,68 @@
+---
+import Text from "./Text.astro";
+
+import { site } from "../lib/site";
+
+const { footerNav, contact, professor } = site;
+const university = site.institutions[0];
+---
+
+<footer
+  id="contact"
+  class="px-4 md:px-8 section-space border-t bg-base border-default"
+>
+  <div class="max-w-6xl mx-auto grid gap-10 md:gap-12 grid-cols-1 md:grid-cols-3">
+    <div>
+      <p class="font-bold tracking-tight text-base md:text-lg text-fg">
+        <Text value={site.name} />
+      </p>
+      <p class="text-sm mt-2 leading-relaxed text-fg-muted">
+        <Text value={professor.affiliation} />
+      </p>
+      <div class="mt-4">
+        <p class="text-xs text-accent"><Text k="identity.partners" /></p>
+        <ul class="mt-2 space-y-2 text-sm text-fg-muted">
+          {site.institutions.map((institution) => <li><a href={institution.href} target="_blank" rel="noopener noreferrer" class="underline underline-offset-4"><Text value={institution.name} /></a></li>)}
+          <li><a href={site.academy.institute.homepage} target="_blank" rel="noopener noreferrer" class="underline underline-offset-4"><Text value={site.academy.institute.name} /></a></li>
+        </ul>
+      </div>
+      <p class="text-xs mt-4 text-fg-subtle">
+        © <Text value={new Date().getFullYear()} /> <Text k="contact.text001" />
+      </p>
+    </div>
+
+    <div>
+      <p class="font-mono text-xs text-accent"><Text k="contact.text002" /></p>
+      <ul class="mt-3 space-y-2 text-sm">
+        {
+          footerNav.map((l) => (
+            <li>
+              <a href={l.href} class="transition-colors text-fg-muted">
+                <Text value={l.label} />
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+
+    <div>
+      <p class="font-mono text-xs text-accent"><Text k="contact.text003" /></p>
+      <ul class="mt-3 space-y-2 text-sm text-fg-muted">
+        {contact.email && <li><span class="text-fg-subtle"><Text k="contact.text004" /> </span><a href={`mailto:${contact.email}`} class="underline underline-offset-4"><Text value={contact.email} /></a></li>}
+        <li><span class="text-fg-subtle"><Text k="contact.text005" /> </span><Text value={contact.address} /></li>
+        <li><span class="text-fg-subtle"><Text k="contact.text006" /> </span><a href={contact.homepage} target="_blank" rel="noopener noreferrer" class="underline underline-offset-4"><Text k="contact.text007" /></a></li>
+      </ul>
+      <a href={university.href} class="footer-emblem" aria-label={university.name}>
+        <span class="footer-logo" role="img" aria-label={university.name} style={`--footer-mark: url("${site.footerLogo.src}"); aspect-ratio: ${site.footerLogo.width} / ${site.footerLogo.height};`}></span>
+      </a>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .footer-emblem { display: block; width: 225px; max-width: 100%; margin: 1.75rem 0 0 auto; }
+  .footer-logo { display: block; width: 100%; background: var(--accent); mask: var(--footer-mark) center / contain no-repeat; }
+  :global(.dark) .footer-logo { background: var(--fg); }
+  @media (max-width: 767px) { .footer-emblem { width: 192px; } }
+</style>

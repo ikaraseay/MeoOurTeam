@@ -1,0 +1,51 @@
+# build output
+dist/
+# generated types
+.astro/
+# Cloudflare 本地状态与临时探针
+.wrangler/
+cloudflare/.wrangler/
+# dependencies
+node_modules/
+# logs
+npm-debug.log*
+pnpm-debug.log*
+# environment variables
+.env
+.env.local
+.env.production
+# 部署配置（含 secret，真实值不入库；模板在 config.env.example）
+config.env
+.dev.vars
+# macOS
+.DS_Store
+# Worker 环境类型（由 wrangler types 生成）
+worker-configuration.d.ts
+# 后台导出的文章 —— 构建期生成，不入库
+frontend/content/generated/*.md
+frontend/content/generated/*.mdx
+frontend/content/generated/.manifest.json
+frontend/content/generated/**/*.md
+frontend/content/generated/**/*.mdx
+# 生成的数据文件
+frontend/data/overrides.ts
+frontend/data/members-data.ts
+frontend/data/research-data.ts
+frontend/data/projects-data.ts
+frontend/data/outcomes-data.ts
+frontend/data/news-data.ts
+# 运行时数据（从 D1 导出）
+data/
+# 构建期生成的文案位置索引
+cloudflare/public/text-locations.json
+# 种子数据备份文件
+backend/db/seeds/*.json
+backend/db/seeds/*.sql
+# 临时文件
+*.tmp
+.seed-tmp.sql
+.import-tmp.sql
+# 开发笔记
+.scratch/
+# test coverage
+coverage/

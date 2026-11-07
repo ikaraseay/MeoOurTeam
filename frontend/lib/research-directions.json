@@ -1,0 +1,56 @@
+[
+  {
+    "id": "direction-1",
+    "title": "具身智能机器人与灵巧手",
+    "content": "研究机器人感知、规划、操作学习、人机协同和灵巧手抓取控制，面向农业采摘、服务操作和复杂环境任务。",
+    "advantage": "具备机器人原型、动作映射和协同数据采集基础。",
+    "scene": "智能制造、智慧农业、服务机器人。",
+    "image": "/images/showcase/robotics-lab.webp",
+    "imageCaption": "方向示意 · 机器人感知与操作研究场景"
+  },
+  {
+    "id": "direction-2",
+    "title": "智慧农业",
+    "content": "围绕作物病虫害识别、奶牛行为识别、农业大模型应用和农业智能监测开展研究。",
+    "advantage": "结合视觉感知、轻量检测和农业场景数据。",
+    "scene": "病虫害监测、畜牧行为分析、农业生产决策。",
+    "image": "/images/showcase/agriculture-platform.webp",
+    "imageCaption": "方向示意 · 数字农业管理平台界面参考"
+  },
+  {
+    "id": "direction-3",
+    "title": "大模型与智能体",
+    "content": "研究多模态大模型、任务智能体、教育智能体，以及面向行业场景的智能决策系统。",
+    "advantage": "强调大模型能力与垂直场景知识结合。",
+    "scene": "教育、科研辅助和产业智能化。",
+    "image": "",
+    "imageCaption": ""
+  },
+  {
+    "id": "direction-4",
+    "title": "可信人工智能",
+    "content": "关注模型可靠性、鲁棒性、隐私保护、安全评估和可解释机制。",
+    "advantage": "面向人工智能工程应用中的可信部署需求。",
+    "scene": "智能感知、医疗辅助、数据安全与行业模型治理。",
+    "image": "",
+    "imageCaption": ""
+  },
+  {
+    "id": "direction-5",
+    "title": "计算机视觉",
+    "content": "开展图像增强、目标检测、行为识别、生物识别和跨模态视觉理解研究。",
+    "advantage": "已有超分辨率、人脸增强、指纹认证和行为识别等积累。",
+    "scene": "安全认证、农业监测、机器人视觉和智慧城市。",
+    "image": "",
+    "imageCaption": ""
+  },
+  {
+    "id": "direction-6",
+    "title": "跨境数据安全",
+    "content": "研究跨境数据流通、隐私保护、数据治理和安全合规支撑技术。",
+    "advantage": "结合区域开放发展与人工智能数据安全需求。",
+    "scene": "跨境协同、数字基础设施和产业数据治理。",
+    "image": "",
+    "imageCaption": ""
+  }
+]

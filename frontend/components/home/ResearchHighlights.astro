@@ -1,0 +1,36 @@
+---
+import { t } from "../../lib/text-config";
+import { publications, demos } from "../../lib/research-materials";
+import SectionHeader from "../SectionHeader.astro";
+import Text from "../Text.astro";
+import VideoPlayer from "../VideoPlayer.astro";
+import { publicationLink } from "../../lib/publications";
+const papers = [...publications].sort((a, b) => b.year.localeCompare(a.year, undefined, { numeric: true })).slice(0, 2);
+const video = demos.find((demo) => demo.file);
+---
+{(papers.length > 0 || video) && <section class="px-4 md:px-8 section-space border-b border-default bg-base">
+  <div class="max-w-6xl mx-auto">
+    <SectionHeader eyebrow={t("home.resultsEyebrow")} title={t("home.resultsTitle")} description={t("home.resultsDescription")} index="03" />
+    <div class="mt-8 grid gap-6 md:grid-cols-2">
+      {papers.length > 0 && <article data-reveal class="surface feature-card direction-card p-6 flex flex-col">
+        <h3 class="font-bold text-lg text-fg"><Text k="home.latestPapers" /></h3>
+        <ul class="mt-3 divide-y border-default">
+          {papers.map((paper) => <li class="py-4 border-default">
+            <p class="text-xs text-fg-muted">{paper.year} · {paper.venue}</p>
+            {publicationLink(paper) ? <a href={publicationLink(paper)!.href} target="_blank" rel="noopener noreferrer" class="block mt-2 font-semibold leading-relaxed text-fg hover:underline">{paper.title} <span aria-hidden="true" class="text-accent">↗</span></a> : <h4 class="mt-2 font-semibold leading-relaxed text-fg">{paper.title}</h4>}
+            {paper.authors && <p class="mt-2 text-xs text-fg-muted">{paper.authors}</p>}
+          </li>)}
+        </ul>
+        <a href="/outcomes/?type=paper" class="mt-auto pt-4 inline-flex items-center min-h-11 text-sm text-accent underline underline-offset-4"><Text k="home.allPapers" /></a>
+      </article>}
+      {video && <article data-reveal class="surface feature-card overflow-hidden">
+        <VideoPlayer src={video.file} title={video.title} poster={video.poster} />
+        <div class="p-6">
+          <p class="text-xs text-accent">{video.focus}</p>
+          <h3 class="mt-2 font-bold text-lg text-fg">{video.title}</h3>
+          <a href="/outcomes/?type=video" class="mt-3 inline-flex items-center min-h-11 text-sm text-accent underline underline-offset-4"><Text k="home.allVideos" /></a>
+        </div>
+      </article>}
+    </div>
+  </div>
+</section>}

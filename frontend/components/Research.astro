@@ -1,0 +1,238 @@
+---
+import { t } from "../lib/text-config";
+import Text from "./Text.astro";
+
+import SectionHeader from "./SectionHeader.astro";
+
+const topics = [
+  { tag: "01", title: t("research.title006"), desc: t("research.desc007") },
+  { tag: "02", title: t("research.title008"), desc: t("research.desc009") },
+  { tag: "03", title: t("research.title010"), desc: t("research.desc011") },
+  { tag: "04", title: t("research.title012"), desc: t("research.desc013") },
+];
+
+// ---------------------------------------------------------------------------
+// Card Stack — single source of truth.
+//
+// Every card's REST position and HOVER position live together in this
+// array. The markup below sets each value as a CSS custom property
+// (`--x`, `--y`, `--rot`, `--scale`, `--op`, and `--h*` for hover),
+// and the <style> block at the bottom reads those variables.
+//
+// This removes the previous triple duplication (data array + inline
+// transform string + hard-coded hover rules) that drifted out of sync.
+// ---------------------------------------------------------------------------
+interface Pose {
+  x: number;   // horizontal offset (px)
+  y: number;   // vertical offset (px)
+  rot: number; // rotation (deg)
+  scale: number;
+  op: number;  // opacity
+}
+
+interface Card {
+  idx: number;
+  z: number;
+  delay: number; // hover transition-delay (ms), for a wave effect
+  rest: Pose;
+  hover: Pose;
+}
+
+const cards: Card[] = [
+  {
+    idx: 1,
+    z: 40,
+    delay: 0,
+    rest: { x: 0, y: 0, rot: 0, scale: 1, op: 1 },
+    hover: { x: 0, y: -80, rot: 0, scale: 1.06, op: 1 },
+  },
+  {
+    idx: 2,
+    z: 30,
+    delay: 60,
+    rest: { x: 0, y: 28, rot: -2, scale: 0.92, op: 0.85 },
+    hover: { x: -360, y: -20, rot: -14, scale: 0.98, op: 1 },
+  },
+  {
+    idx: 3,
+    z: 20,
+    delay: 60,
+    rest: { x: 0, y: 52, rot: 3, scale: 0.84, op: 0.65 },
+    hover: { x: 360, y: 0, rot: 14, scale: 0.95, op: 1 },
+  },
+  {
+    idx: 4,
+    z: 10,
+    delay: 120,
+    rest: { x: 0, y: 76, rot: -4, scale: 0.76, op: 0.5 },
+    hover: { x: 0, y: 130, rot: -3, scale: 0.9, op: 1 },
+  },
+];
+
+// Build the inline style string of CSS custom properties for a card.
+const poseVars = (p: Pose) =>
+  `--x:${p.x}px;--y:${p.y}px;--rot:${p.rot}deg;--scale:${p.scale};--op:${p.op};`;
+
+const cardStyle = (c: Card) =>
+  `${poseVars(c.rest)}--hx:${c.hover.x}px;--hy:${c.hover.y}px;` +
+  `--hrot:${c.hover.rot}deg;--hscale:${c.hover.scale};--hop:${c.hover.op};` +
+  `--z:${c.z};--delay:${c.delay}ms;`;
+---
+
+<section
+  id="research"
+  class="px-4 md:px-8 section-space border-b bg-elev border-default"
+>
+  <div class="max-w-6xl mx-auto">
+    <SectionHeader
+      eyebrow={t("research.eyebrow001")}
+      index="02"
+      title={t("research.title002")}
+      description={t("research.description003")}
+    />
+
+    {/*
+      Card Stack container.
+
+      Each card is absolutely positioned at the center and reads its
+      rest/hover pose from CSS custom properties set inline above.
+      All positioning (position/top/left/width/transform/opacity) is
+      declared once in the <style> block, so the array is the only
+      place that ever changes.
+    */}
+    <div class="cs mt-14 md:mt-20 mx-auto anim-fade-up" style="height: 620px;">
+      <span class="cs-hint text-xs md:text-sm text-fg-subtle">
+        <Text k="research.text004" />
+      </span>
+
+      {
+        cards.map((c) => (
+          <article
+            class={`cs-card cs-card-${c.idx} surface p-6 md:p-7`}
+            style={cardStyle(c)}
+          >
+            <span class="font-mono text-xs text-accent">
+              <Text value={topics[c.idx - 1].tag} />
+            </span>
+            <h3
+              class="font-bold tracking-tight text-lg md:text-xl mt-3 text-fg"
+            >
+              <Text value={topics[c.idx - 1].title} />
+            </h3>
+            <p
+              class="text-xs md:text-sm mt-2 leading-relaxed text-fg-muted"
+            >
+              <Text value={topics[c.idx - 1].desc} />
+            </p>
+            <div
+              class="mt-4 flex items-center gap-1 text-xs md:text-sm font-medium text-accent"
+            >
+              <span><Text k="research.text005" /></span>
+            </div>
+          </article>
+        ))
+      }
+    </div>
+
+    {/*
+      Card Stack styles — all positioning is here, not inline.
+
+      Key design notes:
+      - `transform` and `opacity` read CSS variables (`--x`, `--op`,
+        and the `--h*` hover variants). This is immune to the classic
+        "entry animation overrides inline transform/opacity" bug
+        because nothing else writes `transform`/`opacity` on the cards.
+      - The entry animation (`.anim-fade-up`) is applied to the
+        CONTAINER only, never to the individual cards, so `fill-mode:
+        both` cannot clobber the cards' own opacity.
+      - `transition-delay` is declared on the :hover rule only, so
+        hover-in staggers (wave) but hover-out snaps back instantly.
+    */}
+    <style>
+      .cs {
+        position: relative;
+      }
+      .cs-hint {
+        position: absolute;
+        bottom: 0.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        pointer-events: none;
+        transition: opacity 250ms ease;
+        z-index: 100;
+      }
+      .cs:hover .cs-hint {
+        opacity: 0;
+      }
+
+      .cs-card {
+        position: absolute;
+        top: 50%;
+        left: calc(50% - 144px);
+        width: 288px;
+        max-width: calc(100vw - 2rem);
+        z-index: var(--z);
+        transform: translate(var(--x), var(--y)) rotate(var(--rot)) scale(var(--scale));
+        opacity: var(--op);
+        transform-origin: center center;
+        will-change: transform, opacity;
+        transition:
+          transform 500ms cubic-bezier(0.16, 1, 0.3, 1),
+          opacity 500ms cubic-bezier(0.16, 1, 0.3, 1),
+          box-shadow 500ms ease;
+      }
+
+      /* Wider card + recentered on md+ screens */
+      @media (min-width: 768px) {
+        .cs-card {
+          width: 320px;
+          left: calc(50% - 160px);
+        }
+      }
+
+      /* Fan out on hover, staggered by --delay */
+      .cs:hover .cs-card {
+        transform: translate(var(--hx), var(--hy)) rotate(var(--hrot)) scale(var(--hscale));
+        opacity: var(--hop);
+        transition-delay: var(--delay);
+      }
+      .cs:hover .cs-card-1 {
+        box-shadow: 0 24px 48px rgba(0, 0, 0, 0.18);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .cs-card {
+          transition: none !important;
+        }
+      }
+    </style>
+
+    {/* Mobile fallback list */}
+    <ul class="md:hidden mt-10 space-y-3">
+      {
+        topics.map((t) => (
+          <li class="surface p-5">
+            <span class="font-mono text-xs text-accent">
+              <Text value={t.tag} />
+            </span>
+            <h3
+              class="font-bold tracking-tight text-lg mt-2 text-fg"
+            >
+              <Text value={t.title} />
+            </h3>
+            <p
+              class="text-sm mt-2 leading-relaxed text-fg-muted"
+            >
+              <Text value={t.desc} />
+            </p>
+            <div
+              class="mt-3 flex items-center gap-1 text-sm font-medium text-accent"
+            >
+              <span><Text k="research.text005" /></span>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>

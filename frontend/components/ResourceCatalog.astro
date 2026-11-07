@@ -1,0 +1,102 @@
+---
+import { t } from '../lib/text-config';
+import CatalogFilter from './CatalogFilter.astro';
+import VideoPlayer from './VideoPlayer.astro';
+import PublicationEntry from './PublicationEntry.astro';
+import { publications, demos, awardProofs } from '../lib/research-materials';
+import { sortPublications } from '../lib/publications';
+const papers = sortPublications(publications);
+const awards = [...awardProofs].sort((a, b) => b.year.localeCompare(a.year, undefined, { numeric: true }));
+const categories = [
+  papers.length > 0 && { value: 'paper', label: t('resources.paper') },
+  awards.length > 0 && { value: 'pdf', label: t('resources.awards') },
+  demos.length > 0 && { value: 'video', label: t('resources.video') },
+].filter((category): category is { value: string; label: string } => Boolean(category));
+const sections = [
+  { id: 'publications', label: t('resources.paper'), count: papers.length },
+  { id: 'awards', label: t('resources.awards'), count: awards.length },
+  { id: 'demos', label: t('resources.video'), count: demos.length },
+].filter((section) => section.count > 0);
+const years = [...new Set([...papers, ...awards].map((item) => item.year).filter(Boolean))].sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
+---
+<CatalogFilter id="resources" categories={categories} years={years}>
+  <nav class="resource-navigation" aria-label={t('resources.navigation')}>
+    {sections.map((section) => <a href={`#${section.id}`} data-resource-link={section.id}>{section.label}<span>{section.count}</span></a>)}
+  </nav>
+  <p class="text-xs text-fg-muted mb-6">{t('resources.yearHint')}</p>
+  {papers.length > 0 && <section id="publications" data-catalog-section class="resource-section">
+    <header><h2>{t('resources.paper')}</h2><span>01</span></header>
+    <div>{papers.map((paper) => <PublicationEntry paper={paper} />)}</div>
+  </section>}
+  {awards.length > 0 && <section id="awards" data-catalog-section class="resource-section">
+    <header><h2>{t('resources.awards')}</h2><span>02</span></header>
+    <div class="grid gap-5 md:grid-cols-2">
+      {awards.map((item) => <article data-catalog-item data-search={`${item.title} ${item.level} ${item.year}`} data-categories="pdf" data-year={item.year} class="surface overflow-hidden">
+        {item.preview && <a class="outcome-preview" href={item.file || item.preview} target="_blank" rel="noopener noreferrer" aria-label={t('resources.previewOpen', { title: item.title })}>
+          <img src={item.preview} alt={t('resources.previewAlt', { title: item.title })} width="900" height="640" loading="lazy" decoding="async" />
+        </a>}
+        <div class="p-5">
+          <p class="text-xs text-fg-muted">{item.year} · {item.level}</p>
+          <h3 class="mt-2 font-semibold leading-relaxed text-fg">{item.title}</h3>
+          {item.file && <a href={item.file} target="_blank" rel="noopener noreferrer" class="mt-2 inline-flex min-h-11 items-center text-sm text-accent underline underline-offset-4">{t('resources.viewOutcome')} <span aria-hidden="true">↗</span></a>}
+        </div>
+      </article>)}
+    </div>
+  </section>}
+  {demos.length > 0 && <section id="demos" data-catalog-section class="resource-section">
+    <header><h2>{t('resources.video')}</h2><span>03</span></header>
+    <div class="grid gap-5 md:grid-cols-2">
+      {demos.map((item) => <article data-catalog-item data-search={`${item.title} ${item.focus}`} data-categories="video" data-year="" class="surface overflow-hidden">
+        <VideoPlayer src={item.file} title={item.title} poster={item.poster} />
+        <div class="p-5"><h3 class="font-semibold text-fg">{item.title}</h3><p class="mt-2 text-sm text-fg-muted">{item.focus}</p></div>
+      </article>)}
+    </div>
+  </section>}
+</CatalogFilter>
+<style>
+  .resource-navigation { position: sticky; top: var(--main-navigation-height, 61px); z-index: 20; display: flex; gap: .5rem; margin-bottom: 1rem; padding: .5rem 0; overflow-x: auto; background: color-mix(in srgb, var(--bg) 96%, transparent); backdrop-filter: blur(12px); }
+  .resource-navigation a { flex-shrink: 0; display: flex; align-items: center; gap: .75rem; min-height: 44px; padding: .5rem 1rem; border: 1px solid var(--border); border-radius: .5rem; color: var(--fg-muted); font-size: .875rem; background: var(--bg-elev); }
+  .resource-navigation a[aria-current], .resource-navigation a:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+  .resource-navigation span { font-size: .75rem; font-variant-numeric: tabular-nums; }
+  .resource-section { margin-top: 2.5rem; scroll-margin-top: calc(var(--main-navigation-height, 61px) + var(--resource-navigation-height, 60px) + 1rem); }
+  .resource-section header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; padding-bottom: .75rem; border-bottom: 1px solid var(--border); }
+  h2 { font-size: clamp(1.25rem, 2vw, 1.5rem); font-weight: 700; color: var(--fg); }
+  header span { font-family: monospace; color: var(--fg-subtle); }
+  .outcome-preview { display: block; background: var(--bg-elev); padding: 1rem; border-bottom: 1px solid var(--border); }
+  .outcome-preview img { display: block; width: 100%; height: auto; aspect-ratio: 1.4; object-fit: contain; }
+  .outcome-preview:hover { background: var(--accent-soft); }
+</style>
+<script>
+  document.querySelectorAll<HTMLElement>('.resource-navigation').forEach((nav) => {
+    const root = nav.closest('[data-catalog]');
+    if (!root) return;
+    const links = [...nav.querySelectorAll<HTMLAnchorElement>('[data-resource-link]')];
+    const mainNav = document.querySelector<HTMLElement>('.site-navigation');
+    let offset = 140;
+    const measure = () => {
+      const height = mainNav?.getBoundingClientRect().height ?? 61;
+      root instanceof HTMLElement && root.style.setProperty('--main-navigation-height', `${height}px`);
+      root instanceof HTMLElement && root.style.setProperty('--resource-navigation-height', `${nav.offsetHeight}px`);
+      offset = height + nav.offsetHeight + 24;
+    };
+    const resize = new ResizeObserver(measure);
+    if (mainNav) resize.observe(mainNav);
+    resize.observe(nav);
+    measure();
+    const update = () => {
+      const visible = links.filter((link) => {
+        const section = document.getElementById(link.dataset.resourceLink ?? '');
+        link.hidden = !section || section.hidden;
+        const count = link.querySelector('span');
+        if (section && count) count.textContent = String(section.querySelectorAll('[data-catalog-item]:not([hidden])').length);
+        return !link.hidden;
+      });
+      const active = [...visible].reverse().find((link) => (document.getElementById(link.dataset.resourceLink!)?.getBoundingClientRect().top ?? Infinity) <= offset) ?? visible[0];
+      links.forEach((link) => link === active ? link.setAttribute('aria-current', 'location') : link.removeAttribute('aria-current'));
+    };
+    let frame = 0;
+    window.addEventListener('scroll', () => { if (!frame) frame = requestAnimationFrame(() => { update(); frame = 0; }); }, { passive: true });
+    root.addEventListener('catalog:filtered', update);
+    update();
+  });
+</script>

@@ -1,0 +1,48 @@
+---
+import Text from "./Text.astro";
+
+/**
+ * Reusable section header: eyebrow label, heading, description, and
+ * a large translucent index number on the right.
+ *
+ * The right-hand slot defaults to the index number; pass an `aside`
+ * slot to replace it with custom content (e.g. a "view all" link).
+ *
+ * Usage:
+ *   <SectionHeader eyebrow="Research · 02" index="02"
+ *     title="..." description="..." />
+ */
+interface Props {
+  eyebrow: string;
+  index: string;
+  title: string;
+  description: string;
+}
+
+const { eyebrow, index, title, description } = Astro.props;
+---
+
+<div class="flex items-end justify-between gap-6 flex-wrap">
+  <div class="max-w-3xl anim-fade-up">
+    <span class="eyebrow"><Text value={eyebrow} /></span>
+    <h2
+      class="font-bold tracking-tight mt-4 page-title text-fg"
+    >
+      <Text value={title} />
+    </h2>
+    <p
+      class="mt-4 max-w-xl text-base md:text-lg leading-relaxed text-fg-muted"
+    >
+      <Text value={description} />
+    </p>
+  </div>
+
+  <slot name="aside">
+    <div
+      class="section-index text-7xl md:text-9xl anim-fade-up anim-delay-1"
+      aria-hidden="true"
+    >
+      {index}
+    </div>
+  </slot>
+</div>

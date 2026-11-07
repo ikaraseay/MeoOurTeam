@@ -1,0 +1,33 @@
+---
+import { t } from "../lib/text-config";
+import Text from "../components/Text.astro";
+
+import PageFrame from "../components/PageFrame.astro";
+import { peopleGroups } from "../lib/members";
+import MemberCard from "../components/MemberCard.astro";
+---
+
+<PageFrame
+  title={t("members.title014")}
+  eyebrow={t("members.eyebrow015")}
+  description={t("members.description016")}
+  canonicalPath="/members/"
+>
+  <section class="px-4 md:px-8 section-space bg-base">
+    <div class="max-w-6xl mx-auto grid gap-10 md:grid-cols-2">
+      {peopleGroups.map((group) => (
+        <section class:list={{ "md:col-span-2": !["pi", "advisors"].includes(group.id) }} aria-labelledby={`member-group-${group.id}`}>
+          <h2 id={`member-group-${group.id}`} class="member-group-title font-bold text-xl text-fg"><Text value={group.title} /></h2>
+          <div class:list={["member-list mt-5 grid gap-4", { "md:grid-cols-2": group.people.length > 1 && !["pi", "advisors"].includes(group.id) }]}>
+            {group.people.map((person) => <MemberCard person={person} />)}
+          </div>
+        </section>
+      ))}
+    </div>
+  </section>
+</PageFrame>
+
+<style>
+  .member-group-title { display: flex; align-items: center; gap: 1rem; }
+  .member-group-title::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+</style>

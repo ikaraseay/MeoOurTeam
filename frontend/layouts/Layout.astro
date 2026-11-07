@@ -1,0 +1,110 @@
+---
+import { binding } from "../lib/text-config";
+
+import "../styles/global.css";
+import { site } from "../lib/site";
+import { organizationJsonLd, siteIcons, socialImage } from "../lib/seo";
+import Motion from "../components/Motion.astro";
+
+interface Props {
+  title?: string;
+  description?: string;
+  /** Canonical URL (omit path for the homepage). */
+  canonicalPath?: string;
+  /** Optional article-specific structured data (e.g. BlogPosting). */
+  jsonLd?: Record<string, unknown>;
+}
+
+const {
+  title = site.fullTitle,
+  description = site.description,
+  canonicalPath = "",
+  jsonLd,
+} = Astro.props;
+
+const canonicalUrl = new URL(canonicalPath || "/", site.url).href;
+const ogType = jsonLd?.["@type"] === "BlogPosting" ? "article" : "website";
+// Article titles are authored content even if they happen to match a UI label.
+const titleBinding = ogType === "article"
+  ? JSON.stringify({ key: "common.pageTitle", params: { title: jsonLd?.headline, site: site.name }, literalParams: ["title"] })
+  : binding(title);
+
+const defaultJsonLd = organizationJsonLd();
+
+const structuredData = JSON.stringify(jsonLd ?? defaultJsonLd).replace(/</g, "\\u003c");
+---
+
+<!doctype html>
+<html lang={site.language}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta  data-copy-attrs={JSON.stringify({"content": (!jsonLd ? binding(description) : undefined)})} name="description" content={description} />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="icon" type="image/svg+xml" href={siteIcons.svg} />
+    <link rel="icon" type="image/png" sizes="32x32" href={siteIcons.png} />
+    <link rel="icon" sizes="any" href={siteIcons.ico} />
+    <link rel="apple-touch-icon" sizes="180x180" href={siteIcons.apple} />
+    {site.branding.themeColor && <meta name="theme-color" content={site.branding.themeColor} />}
+    <link rel="alternate" type="application/rss+xml" title={site.rss.title} href="/rss.xml" />
+    <link rel="canonical" href={canonicalUrl} />
+    <title data-copy={titleBinding}>{title}</title>
+
+    <!-- Open Graph / social -->
+    <meta property="og:type" content={ogType} />
+    <meta  data-copy-attrs={JSON.stringify({"content": binding(site.name)})} property="og:site_name" content={site.name} />
+    <meta  data-copy-attrs={JSON.stringify({"content": titleBinding})} property="og:title" content={title} />
+    <meta  data-copy-attrs={JSON.stringify({"content": (!jsonLd ? binding(description) : undefined)})} property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:locale" content={site.language.replace("-", "_")} />
+    <meta property="og:image" content={new URL(socialImage.src, site.url).href} />
+    <meta property="og:image:width" content={String(socialImage.width)} />
+    <meta property="og:image:height" content={String(socialImage.height)} />
+    <meta property="og:image:alt" content={socialImage.alt} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content={new URL(socialImage.src, site.url).href} />
+    <meta name="twitter:image:alt" content={socialImage.alt} />
+    <meta  data-copy-attrs={JSON.stringify({"content": titleBinding})} name="twitter:title" content={title} />
+    <meta  data-copy-attrs={JSON.stringify({"content": (!jsonLd ? binding(description) : undefined)})} name="twitter:description" content={description} />
+
+    <!-- Structured data -->
+    <script is:inline type="application/ld+json" data-copy-structured={!jsonLd ? "default" : undefined} set:html={structuredData} />
+
+
+
+    {/*
+      Theme bootstrap.
+
+      Runs synchronously in <head> before <body> parses, so the
+      dark class is applied before any CSS-driven paint. Then
+      a media-query listener keeps it in sync with system changes.
+    */}
+    <script is:inline>
+      (function () {
+        try {
+          var mq = window.matchMedia("(prefers-color-scheme: dark)");
+          var apply = function () {
+            var html = document.documentElement;
+            html.classList.toggle("dark", mq.matches);
+            html.style.colorScheme = mq.matches ? "dark" : "light";
+          };
+          apply();
+          // Modern API (Safari 14+, all evergreen browsers)
+          if (mq.addEventListener) {
+            mq.addEventListener("change", apply);
+          } else if (mq.addListener) {
+            // Safari < 14 fallback
+            mq.addListener(apply);
+          }
+        } catch (e) {
+          // Best-effort only.
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <slot />
+    <Motion />
+
+  </body>
+</html>

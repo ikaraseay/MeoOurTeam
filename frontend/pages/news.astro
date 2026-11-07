@@ -1,0 +1,18 @@
+---
+import { t } from "../lib/text-config";
+import Text from "../components/Text.astro";
+import PageFrame from "../components/PageFrame.astro";
+import CatalogFilter from "../components/CatalogFilter.astro";
+import PostList from "../components/PostList.astro";
+import { getNewsPosts } from "../lib/posts";
+import { newsCategoryOptions } from "../lib/news";
+const news = await getNewsPosts();
+---
+<PageFrame title={t("news.title001")} eyebrow={t("news.eyebrow002")} description={t("news.description003")} canonicalPath="/news/">
+  <section class="px-4 md:px-8 section-space bg-base">
+    <div class="max-w-6xl mx-auto">
+      {news.length ? <CatalogFilter id="news" categories={newsCategoryOptions()}><PostList posts={news} filterable /></CatalogFilter> : <p class="surface p-8 text-fg-muted"><Text k="news.empty" /></p>}
+      <a href="/blog/" class="mt-6 inline-flex items-center min-h-11 text-sm text-accent underline underline-offset-4"><Text k="news.archive" /></a>
+    </div>
+  </section>
+</PageFrame>

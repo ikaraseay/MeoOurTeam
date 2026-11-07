@@ -1,0 +1,53 @@
+---
+import { t } from "../lib/text-config";
+import Text from "./Text.astro";
+
+import Layout from "../layouts/Layout.astro";
+import Navbar from "./Navbar.astro";
+import Footer from "./Contact.astro";
+import PostList from "./PostList.astro";
+import Pagination from "./Pagination.astro";
+import BlogSearch from "./BlogSearch.astro";
+import type { BlogPost } from "../lib/posts";
+import { site } from "../lib/site";
+
+interface Props {
+  posts: BlogPost[];
+  page: number;
+  totalPages: number;
+  totalCount: number;
+  canonicalPath: string;
+  tag?: string;
+}
+const { posts, page, totalPages, totalCount, canonicalPath, tag } = Astro.props;
+const title = tag ? t("bloglisting.text005", { p0: tag }) : t("bloglisting.text006");
+const basePath = tag ? `/blog/tag/${encodeURIComponent(tag)}/` : "/blog/";
+---
+
+<Layout title={t("common.pageTitle", { title, site: site.name })} canonicalPath={canonicalPath}>
+  <Navbar />
+  <main>
+    <section class="px-4 md:px-8 page-heading-space border-b bg-elev border-default">
+      <div class="max-w-6xl mx-auto anim-fade-up">
+        <span class="eyebrow"><Text k="bloglisting.text001" /></span>
+        <h1 class="font-bold tracking-tight mt-4 page-title text-fg"><Text value={tag ? `#${tag}` : t("bloglisting.text007")} /></h1>
+        <p class="mt-4 max-w-2xl text-base md:text-lg leading-relaxed text-fg-muted"><Text value={tag ? t("bloglisting.text008", { p0: tag }) : t("bloglisting.text009")} /></p>
+        <div class="mt-6 flex items-center gap-4 text-sm">
+          <a href="/rss.xml" class="rounded-full px-4 py-2 font-medium inline-flex items-center gap-2 transition-colors bg-accent text-accent-fg"><Text k="bloglisting.text002" /></a>
+          <span class="text-fg-subtle"><Text value={totalCount} /> <Text k="bloglisting.text003" /></span>
+          {tag && <a href="/blog/" class="text-accent hover:underline"><Text k="bloglisting.text004" /></a>}
+        </div>
+      </div>
+    </section>
+    <section class="px-4 md:px-8 section-space bg-base">
+      <div class="max-w-6xl mx-auto">
+        {!tag && <BlogSearch />}
+        <div data-blog-listing>
+          <PostList posts={posts} />
+          <Pagination page={page} totalPages={totalPages} basePath={basePath} />
+        </div>
+      </div>
+    </section>
+  </main>
+  <Footer />
+</Layout>

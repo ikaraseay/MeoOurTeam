@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# 提交前检查是否有敏感信息泄露
+set -euo pipefail
+
+FILES=$(git diff --cached --name-only --diff-filter=ACM)
+
+PATTERNS=(
+  'ADMIN_PASSWORD_HASH="[^"]\+"'
+  'SESSION_SECRET="[^"]\+"'
+  'CLOUDFLARE_API_TOKEN="[^"]\+"'
+  'CLOUDFLARE_ACCOUNT_ID="[0-9a-f]\{32\}"'
+  'D1_DATABASE_ID="[0-9a-f]\{8\}-"'
+  'password\s*=\s*"[^"]\+"'
+  'secret\s*=\s*"[^"]\+"'
+  'api_key\s*=\s*"[^"]\+"'
+)
+
+FOUND=0
+for pattern in "${PATTERNS[@]}"; do
+  for file in $FILES; do
+    if [ -f "$file" ] && grep -qiE "$pattern" "$file" 2>/dev/null; then
+      echo "⚠️  可能包含敏感信息：$file (pattern: $pattern)"
+      FOUND=1
+    fi
+  done
+done
+
+if [ "$FOUND" -eq 1 ]; then
+  echo ""
+  echo "提交被拒绝。请确认以上文件不包含密码、密钥或 token。"
+  echo "如需跳过检查：git commit --no-verify"
+  exit 1
+fi

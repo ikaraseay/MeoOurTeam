@@ -1,0 +1,21 @@
+---
+import { t } from "../../lib/text-config";
+import SectionHeader from "../SectionHeader.astro";
+import Text from "../Text.astro";
+const entries = [
+  { href: "/contact/#students", title: t("home.studentTitle"), description: t("home.studentDescription"), action: t("home.studentLink") },
+  { href: "/contact/#postdocs", title: t("home.partnerTitle"), description: t("home.partnerDescription"), action: t("home.partnerLink") },
+];
+---
+<section class="px-4 md:px-8 section-space border-b border-default bg-base">
+  <div class="max-w-6xl mx-auto">
+    <SectionHeader eyebrow={t("home.joinEyebrow")} title={t("home.joinTitle")} description={t("home.joinDescription")} index="05" />
+    <div class="mt-8 grid gap-4 md:grid-cols-2">
+      {entries.map((item) => <a href={item.href} data-reveal class="surface feature-card p-6 md:p-8 flex flex-col">
+        <h3 class="text-xl font-bold text-fg"><Text value={item.title} /></h3>
+        <p class="mt-4 text-sm leading-relaxed text-fg-muted"><Text value={item.description} /></p>
+        <span class="mt-auto pt-6 text-sm font-medium text-accent"><Text value={item.action} /></span>
+      </a>)}
+    </div>
+  </div>
+</section>

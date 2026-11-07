@@ -35,6 +35,23 @@ for (const dir of [DATA_DIR, RUNTIME_DIR, BLOG_DIR]) {
 const identityPath = join(RUNTIME_DIR, 'site-identity.json')
 if (ensureOnly) {
   if (!existsSync(identityPath)) writeFileSync(identityPath, '{}\n')
+  // 无 D1 访问的干净检出（如 CI）也要能通过 astro check，写入与真实导出一致的空快照。
+  const ensureFiles = {
+    'site-content.json': {
+      peopleGroups: [],
+      researchDirections: [],
+      projects: [],
+      publications: [],
+      outcomeFiles: [],
+      introductionVideos: [],
+      homepage: { researchDirections: true, researchHighlights: true, latestNews: true, joinTeam: true },
+    },
+    'published-text.json': {},
+  }
+  for (const [name, value] of Object.entries(ensureFiles)) {
+    const file = join(RUNTIME_DIR, name)
+    if (!existsSync(file)) writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`)
+  }
   console.log('[export] 目录已确保')
   process.exit(0)
 }

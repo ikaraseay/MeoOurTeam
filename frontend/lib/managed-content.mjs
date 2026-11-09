@@ -5,16 +5,13 @@
  * 成果文件与预览可选，论文全文是否公开由授权/链接配置控制，不能由上传动作推断。
  */
 import { createHash } from 'node:crypto';
-import { runtimeDirectory, publishedSourceDirectory } from './data-paths.mjs';
 import { t } from './text-config.ts';
 import { videoPoster } from './media.mjs';
 import { publicationHighlights } from './publications.ts';
 import { outcomePreview } from './outcome-previews.mjs';
 import researchDefaults from './research-directions.json' with { type: 'json' };
+import siteContentSnapshot from '../../data/runtime/site-content.json' with { type: 'json' };
 import { academicMemberGroups, splitLegacyMemberGroups } from './member-groups.mjs';
-
-import { existsSync, readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
 
 export const managedContentDefaults = Object.freeze({
   // Absent fields in older installations receive these defaults; [] stays empty.
@@ -32,10 +29,6 @@ export const managedContentDefaults = Object.freeze({
   introductionVideos: [],
   outcomeFiles: [],
 });
-
-function clone(value) {
-  return JSON.parse(JSON.stringify(value));
-}
 
 function stringField(value, label, max, { required = true } = {}) {
   if (typeof value !== 'string') throw new Error(t("errors.text037", {p0: label}));
@@ -125,13 +118,14 @@ function checkedHighlights(value = []) {
 function publication(input, index) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error(t("errors.managed013", {p0: index + 1}));
   const highlights = checkedHighlights(input.highlights);
-  const visible = booleanField(input.visible, t('admin.paperVisibility'));
-  if (visible && !highlights.includes('cas-q1')) throw new Error(t('admin.paperQ1Required'));
+  let visible = booleanField(input.visible, t('admin.paperVisibility'));
+  // 旧数据先于"一区核实"规则存在：保留记录但不公开展示，直到后台重新勾选核实标签。
+  if (visible && !highlights.includes('cas-q1')) visible = false;
   return {
     year: stringField(input.year, t("errors.managed014"), 20),
     title: stringField(input.title, t("errors.managed015"), 240),
     venue: stringField(input.venue, t("errors.managed016"), 160),
-    area: stringField(input.area, t("errors.managed017"), 80),
+    area: stringField(input.area ?? '', t("errors.managed017"), 80, { required: false }),
     file: pathOrUrl(input.file ?? '', t("errors.managed018")),
     authors: stringField(input.authors ?? '', t('admin.paperAuthors'), 1400, { required: false }),
     citation: stringField(input.citation ?? '', t('admin.paperCitation'), 3000, { required: false }),
@@ -162,7 +156,7 @@ function outcomeFile(input, index) {
   return {
     year: stringField(input.year, t("errors.managed023"), 20),
     title: stringField(input.title, t("errors.managed024"), 180),
-    level: stringField(input.level, t("errors.managed025"), 120),
+    level: stringField(input.level ?? '', t("errors.managed025"), 120, { required: false }),
     file,
     preview: pathOrUrl(input.preview || (file ? outcomePreview(file) : ''), t("admin.outcomePreview")),
     visible: booleanField(input.visible, t('admin.outcomeVisibility')),
@@ -247,13 +241,6 @@ export function normalizeManagedContent(input = {}) {
   };
 }
 
-export function managedContentPath(env = process.env) {
-  return resolve(env.BLOG_SITE_CONTENT_FILE ?? join(publishedSourceDirectory(env) ?? runtimeDirectory(env), 'site-content.json'));
-}
-
-export function readManagedContent(path = managedContentPath()) {
-  if (!existsSync(path)) return normalizeManagedContent(clone(managedContentDefaults));
-  return normalizeManagedContent(JSON.parse(readFileSync(path, 'utf8')));
-}
-
-export const managedContent = readManagedContent();
+// 预渲染运行在 workerd 沙箱（cwd=/bundle）中，无法用 fs 读仓库文件；
+// 快照 JSON 由 prebuild 导出后随包直接打包，与后台页面相同的注入方式。
+export const managedContent = normalizeManagedContent(siteContentSnapshot);

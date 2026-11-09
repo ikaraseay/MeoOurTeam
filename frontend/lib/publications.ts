@@ -16,21 +16,18 @@ export function orderedHighlights(paper: Publication): PublicationHighlight[] {
   return publicationHighlights.filter((value) => paper.highlights?.includes(value));
 }
 export function highlightLabel(value: PublicationHighlight): string { return t(highlightKeys[value]); }
-function safeLink(value: string | undefined, externalOnly = false): string {
+function safeLink(value: string | undefined): string {
   if (!value || /[\s<>"'\\\u0000-\u001f]/.test(value)) return '';
-  if (!externalOnly && value.startsWith('/') && !value.startsWith('//')) return value;
   try {
     const url = new URL(value);
     return ['https:', 'http:'].includes(url.protocol) && !url.username && !url.password ? url.href : '';
   } catch { return ''; }
 }
+// 论文全文 PDF 不公开：仅保留官方外部链接（如出版社页面），本地/R2 文件不再生成链接。
 export function publicationLink(paper: Publication): { href: string; official: boolean } | null {
   if (paper.rights !== 'allowed') return null;
-  const official = safeLink(paper.officialUrl, true);
-  if (official) return { href: official, official: true };
-  const local = safeLink(paper.file);
-  // A legacy remote file remains supported, but is not automatically an official source.
-  return local ? { href: local, official: false } : null;
+  const official = safeLink(paper.officialUrl);
+  return official ? { href: official, official: true } : null;
 }
 export function publicationCitation(paper: Publication): string {
   return paper.citation?.trim() || [paper.authors, paper.title, paper.venue, paper.year].filter(Boolean).join('. ') + '.';

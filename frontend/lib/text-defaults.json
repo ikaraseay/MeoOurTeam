@@ -771,5 +771,8 @@
   "admin.outcomePdfHidden": "不展示 PDF 链接",
   "admin.outcomePdfShown": "有文件时展示 PDF 链接",
   "admin.outcomePdfHelp": "PDF 上传可选。关闭链接后仍可展示成果标题、年份、级别和封面；已上传的文件保留在素材库，此设置不限制通过已有文件地址访问。",
-  "release.timeout": "构建超过时间限制，已停止任务，线上版本保持不变。"
+  "release.timeout": "构建超过时间限制，已停止任务，线上版本保持不变。",
+  "notFound.title001": "页面未找到",
+  "notFound.text002": "您访问的页面不存在或已被移动，请检查地址后重试，或返回首页继续浏览。",
+  "notFound.action003": "返回首页"
 }

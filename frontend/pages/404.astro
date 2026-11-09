@@ -1,0 +1,33 @@
+---
+import { t } from "../lib/text-config";
+import Text from "../components/Text.astro";
+
+import Layout from "../layouts/Layout.astro";
+import Navbar from "../components/Navbar.astro";
+import Footer from "../components/Contact.astro";
+import { site } from "../lib/site";
+---
+
+<Layout title={t("common.pageTitle", { title: t("notFound.title001"), site: site.name })} description={t("notFound.text002")}>
+  <Navbar />
+  <main>
+    <section class="px-4 md:px-8 page-heading-space border-b bg-elev border-default">
+      <div class="max-w-3xl mx-auto py-20 md:py-28 text-center anim-fade-up">
+        <p class="font-mono text-5xl md:text-6xl font-bold text-accent" aria-hidden="true">404</p>
+        <h1 class="mt-6 text-2xl md:text-3xl font-bold tracking-tight text-fg"><Text k="notFound.title001" /></h1>
+        <p class="mt-4 text-sm md:text-base leading-relaxed text-fg-muted"><Text k="notFound.text002" /></p>
+        <div class="mt-8 flex flex-wrap justify-center gap-3">
+          <a href="/" class="primary-action"><Text k="notFound.action003" /></a>
+          <a href="/news/" class="secondary-action"><Text k="news.text004" /><span aria-hidden="true"> →</span></a>
+        </div>
+      </div>
+    </section>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .primary-action, .secondary-action { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; min-height: 44px; padding: .625rem 1.25rem; border-radius: 999px; font-size: .875rem; font-weight: 600; }
+  .primary-action { background: var(--accent); color: var(--accent-fg); }
+  .secondary-action { border: 1px solid var(--border); color: var(--accent); background: var(--accent-soft); }
+</style>

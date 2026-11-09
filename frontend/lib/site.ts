@@ -48,8 +48,8 @@ export const site = {
   fullTitle: t("site.fulltitle002"),
   /** Meta description / RSS description. */
   description: t("site.description003"),
-  /** Canonical base URL. Replace with the real production domain. */
-  url: process.env.SITE_URL ?? "https://example.com",
+  /** Canonical base URL. Injected at build time by scripts/apply-config.mjs via astro.config.mjs `site`. */
+  url: import.meta.env.SITE ?? "https://example.com",
   /** ISO language code for <html lang> and RSS. */
   language: "zh-CN",
 

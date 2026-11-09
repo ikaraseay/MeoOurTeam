@@ -47,6 +47,7 @@ if (ensureOnly) {
       homepage: { researchDirections: true, researchHighlights: true, latestNews: true, joinTeam: true },
     },
     'published-text.json': {},
+    'site-contact.json': {},
   }
   for (const [name, value] of Object.entries(ensureFiles)) {
     const file = join(RUNTIME_DIR, name)
@@ -290,6 +291,18 @@ if (settings.site_identity) {
 }
 writeFileSync(identityPath, JSON.stringify({ ...identityDefaults, ...siteIdentity }, null, 2))
 console.log(`[export] 已写入 ${identityPath}`)
+
+// 联系信息：邮箱与招生文档属于隐私数据，保存在 D1 settings.site_contact，模板代码不含真实值。
+let siteContact = {}
+if (settings.site_contact) {
+  try {
+    const stored = JSON.parse(settings.site_contact)
+    if (stored && typeof stored === 'object') siteContact = stored
+  } catch { /* invalid overrides fall back to empty contact */ }
+}
+const siteContactPath = join(RUNTIME_DIR, 'site-contact.json')
+writeFileSync(siteContactPath, JSON.stringify(siteContact, null, 2))
+console.log(`[export] 已写入 ${siteContactPath}`)
 
 // 管理后台把完整站点资料（含论文标签、公开状态、配图、视频等）保存在 settings.site_content，
 // 表结构映射会丢失这些字段，因此发布时优先使用这份规范 JSON。

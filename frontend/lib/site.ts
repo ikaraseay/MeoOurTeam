@@ -1,5 +1,6 @@
 import { t } from './text-config.ts';
 import { normalizeSiteIdentity } from './site-identity.ts';
+import { siteContact } from './site-contact.ts';
 import identitySnapshot from '../../data/runtime/site-identity.json' with { type: 'json' };
 
 const identity = normalizeSiteIdentity(identitySnapshot);
@@ -65,14 +66,14 @@ export const site = {
 
   /** Local identity assets; use the existing theme-aware presentation without distortion. */
   institutions: [
-    { name: t("identity.university"), href: "https://example.com/", logo: identity.universityLogo, width: 442, height: 72 },
-    { name: t("site.name020"), href: "https://example.com/academy", logo: identity.academyLogo, width: 495, height: 113 },
+    { name: t("identity.university"), href: "https://www.guet.edu.cn/", logo: identity.universityLogo, width: 442, height: 72 },
+    { name: t("site.name020"), href: "https://gxaai.guet.edu.cn/main.htm", logo: identity.academyLogo, width: 495, height: 113 },
   ],
   /** Transparent footer mark; replace the file or override it in the admin. */
   footerLogo: { src: identity.footerLogo, width: 225, height: 144 },
   /** Replace image paths/captions here, then publish a fresh build. */
   showcase: [
-    { ...images.campus, alt: t("visuals.campusAlt"), title: t("visuals.campusTitle"), caption: t("visuals.campusCaption"), href: "https://example.com/academy" },
+    { ...images.campus, alt: t("visuals.campusAlt"), title: t("visuals.campusTitle"), caption: t("visuals.campusCaption"), href: "https://gxaai.guet.edu.cn/main.htm" },
     { ...images.robotics, alt: t("visuals.robotAlt"), title: t("visuals.robotTitle"), caption: t("visuals.robotCaption"), href: "/outcomes/" },
     { ...images.vision, alt: t("visuals.visionAlt"), title: t("visuals.visionTitle"), caption: t("visuals.visionCaption"), href: "/research/" },
   ],
@@ -116,13 +117,13 @@ export const site = {
   academy: {
     name: t("site.name020"),
     /** 学院与研究院分别保留官方入口，避免混用。 */
-    homepage: "https://example.com/academy",
+    homepage: "https://gxaai.guet.edu.cn/main.htm",
     institute: {
       name: t("identity.institute"),
-      homepage: "https://example.com/institute",
-      logo: identity.academyLogo,
-      width: 495,
-      height: 113,
+      homepage: "https://www.guet.edu.cn/nyy/",
+      logo: "/images/brand/guet-nanning-white.webp",
+      width: 1647,
+      height: 280,
     },
     /** Facts listed in the "about" section. */
     facts: [
@@ -133,13 +134,15 @@ export const site = {
   },
 
   contact: {
-    /** Replace with the public academic contact for this installation. */
-    email: "contact@example.com",
-    /** Optional additional recipients for graduate applications. */
-    graduateCc: [],
-    /** 学院通讯地址（示例占位）。 */
+    /** 联系邮箱来自 D1 settings.site_contact（后台配置），模板不含真实值。 */
+    email: siteContact.email,
+    /** 研究生申请抄送地址，同样来自后台配置。 */
+    graduateCc: siteContact.graduateCc,
+    /** 招生指南 PDF（R2 媒体地址），空值表示未配置。 */
+    recruitmentDocument: siteContact.recruitmentDocument,
+    /** 学院通讯地址，非课题组办公室。 */
     address: t("site.address026"),
-    homepage: "https://example.com/academy",
+    homepage: "https://gxaai.guet.edu.cn/main.htm",
   },
 
   /** RSS feed metadata. */

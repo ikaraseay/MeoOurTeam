@@ -21,7 +21,7 @@ export const graduatePrograms = [
 ];
 export const applicationMaterials = [t('contact.materialResume'), t('contact.materialTranscript'), t('contact.materialExam')];
 export const interviewPreparation = [t('contact.interviewPresentation'), t('contact.interviewCode'), t('contact.interviewTranslation')];
-export const recruitmentDocument = '/recruitment/sample-admissions-guide.pdf';
+export const recruitmentDocument = site.contact.recruitmentDocument;
 export const facultyMailto = `mailto:${site.contact.email}?subject=${encodeURIComponent(t('contact.facultySubject'))}`;
 export const graduateMailto = `mailto:${site.contact.email}?cc=${encodeURIComponent(site.contact.graduateCc.join(','))}&subject=${encodeURIComponent(t('contact.studentSubject'))}`;
 
